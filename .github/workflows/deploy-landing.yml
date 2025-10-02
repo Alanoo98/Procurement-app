@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths: ['apps/landing/**']
+  # Disabled for now - enable when ready
+  # workflow_dispatch:
 
 jobs:
   deploy:
