@@ -25,4 +25,6 @@ jobs:
       - name: Skip linting for now
         run: echo "Linting skipped - focusing on deployment"
       - name: Build dashboard only
-        run: npm run build --workspace=apps/dashboard
+        run: |
+          cd apps/dashboard
+          npm run build

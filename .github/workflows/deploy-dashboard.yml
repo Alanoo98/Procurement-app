@@ -28,7 +28,9 @@ jobs:
           cd apps/dashboard && npm install
 
       - name: Build dashboard
-        run: npm run build --workspace=apps/dashboard
+        run: |
+          cd apps/dashboard
+          npm run build
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
