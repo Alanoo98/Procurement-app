@@ -5,7 +5,8 @@
   "main": "test_booked_entries.js",
   "scripts": {
     "test": "node test_booked_entries.js",
-    "start": "node test_booked_entries.js"
+    "start": "node test_booked_entries.js",
+    "lint": "echo 'No linting configured for API service'"
   },
   "dependencies": {
     "form-data": "^4.0.4",

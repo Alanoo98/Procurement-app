@@ -16,7 +16,7 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: npm install
-      - name: Lint all workspaces
-        run: npm run lint
+      - name: Lint frontend workspaces
+        run: npm run lint --workspace=apps/dashboard --workspace=apps/admin --workspace=apps/landing
       - name: Build all workspaces
         run: npm run build

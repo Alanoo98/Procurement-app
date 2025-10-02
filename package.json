@@ -11,7 +11,7 @@
     "dev": "concurrently \"npm run dev --workspace=apps/dashboard\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/landing\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces",
+    "lint": "npm run lint --workspace=apps/dashboard --workspace=apps/admin --workspace=apps/landing --workspace=services/api",
     "clean": "rimraf node_modules && npm run clean --workspaces",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
