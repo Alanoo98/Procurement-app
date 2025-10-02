@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # Booking Integration Service
+  booking-integration:
+    build:
+      context: .
+      dockerfile: booking_integration_service/Dockerfile
+    container_name: booking-integration-service
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379
+      - EASYTABLE_API_KEY=${EASYTABLE_API_KEY}
+      - AZURE_SQL_CONNECTION_STRING=${AZURE_SQL_CONNECTION_STRING}
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./booking_integration_service:/app
+      - /app/node_modules
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: procurement-postgres
+    environment:
+      - POSTGRES_DB=procurement
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: procurement-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # CPG Calculation Service
+  cpg-calculation:
+    build:
+      context: .
+      dockerfile: booking_integration_service/Dockerfile
+    container_name: cpg-calculation-service
+    command: ["python", "-m", "booking_integration.cpg_calculator"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379
+      - CALCULATION_INTERVAL=300
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./booking_integration_service:/app
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Analytics Service
+  analytics-service:
+    build:
+      context: .
+      dockerfile: booking_integration_service/Dockerfile
+    container_name: analytics-service
+    command: ["python", "-m", "booking_integration.analytics"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./booking_integration_service:/app
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Sync Service (Scheduler)
+  sync-service:
+    build:
+      context: .
+      dockerfile: booking_integration_service/Dockerfile
+    container_name: sync-service
+    command: ["python", "-m", "booking_integration.sync_scheduler"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379
+      - SYNC_INTERVAL=900
+    depends_on:
+      - postgres
+      - redis
+      - booking-integration
+    volumes:
+      - ./booking_integration_service:/app
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: procurement-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - booking-integration
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: procurement-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: procurement-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  # Health Check Service
+  health-check:
+    image: curlimages/curl:latest
+    container_name: health-check
+    command: >
+      sh -c "
+      while true; do
+        curl -f http://booking-integration:8000/health || echo 'Booking service unhealthy'
+        curl -f http://cpg-calculation:8000/health || echo 'CPG service unhealthy'
+        sleep 30
+      done
+      "
+    depends_on:
+      - booking-integration
+      - cpg-calculation
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  procurement-network:
+    driver: bridge

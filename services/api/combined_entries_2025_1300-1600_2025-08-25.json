@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "accounting_year": "2025",
+    "account_range": {
+      "from": 1300,
+      "to": 1600
+    },
+    "organization_id": "5c38a370-7d13-4656-97f8-0b71f4000703",
+    "location_id": "9e2d666b-b366-45d4-9b3e-8fa41f8f352e",
+    "processing_timestamp": "2025-08-25T08:47:59.625Z",
+    "total_entries": 0,
+    "booked_entries": 0,
+    "journal_entries": 0
+  },
+  "entries": [],
+  "summary": {
+    "by_entry_type": {
+      "booked": 0,
+      "journal": 0
+    },
+    "by_account_number": {},
+    "voucher_numbers": []
+  }
+}

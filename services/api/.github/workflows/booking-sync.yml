@@ -1,0 +1,80 @@
+# Generic Business Booking Sync Workflow
+# This workflow can be customized for different businesses by:
+# 1. Setting up the appropriate SOURCE_DB_* secrets for your source database
+# 2. Modifying the booking_sync_github.py script for your business logic
+# 3. Adjusting the business_type parameter for your industry
+# 4. Customizing the sync parameters as needed
+
+name: Business Booking Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      organization_id:
+        description: 'Organization ID for booking records'
+        required: true
+        type: string
+      location_id:
+        description: 'Location/Branch ID (optional - leave empty for all locations)'
+        required: false
+        type: string
+      start_date:
+        description: 'Start date for sync (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
+      end_date:
+        description: 'End date for sync (YYYY-MM-DD)'
+        required: false
+        default: ''
+        type: string
+      business_type:
+        description: 'Business type identifier (e.g., restaurant, hotel, venue)'
+        required: false
+        default: 'restaurant'
+        type: string
+
+jobs:
+  sync-booking-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install ODBC driver and Python deps
+      run: |
+        sudo bash -c 'curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -'
+        sudo bash -c 'curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list > /etc/apt/sources.list.d/mssql-release.list'
+        sudo ACCEPT_EULA=Y apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+        cd booking_integration_service
+        pip install pyodbc supabase python-dotenv
+        
+    - name: Run booking sync
+      env:
+        SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
+        SOURCE_DB_DATABASE: ${{ secrets.SOURCE_DB_DATABASE }}
+        SOURCE_DB_USER: ${{ secrets.SOURCE_DB_USER }}
+        SOURCE_DB_PASSWORD: ${{ secrets.SOURCE_DB_PASSWORD }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        ORGANIZATION_ID: ${{ github.event.inputs.organization_id }}
+        LOCATION_ID: ${{ github.event.inputs.location_id }}
+        START_DATE: ${{ github.event.inputs.start_date }}
+        END_DATE: ${{ github.event.inputs.end_date }}
+        BUSINESS_TYPE: ${{ github.event.inputs.business_type }}
+      run: |
+        cd booking_integration_service
+        python booking_sync_github.py
+        
+    - name: Notify completion
+      if: always()
+      run: |
+        echo "Booking sync workflow completed"
+        echo "Check the logs above for details"

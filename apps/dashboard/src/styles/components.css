@@ -1,0 +1,154 @@
+/* Component-specific styles */
+
+/* Card */
+.card {
+  @apply bg-white rounded-lg shadow-lg p-6 transition-all duration-300 hover:shadow-xl;
+}
+
+.card-header {
+  @apply mb-4;
+}
+
+.card-title {
+  @apply text-xl font-semibold text-gray-800;
+}
+
+.card-subtitle {
+  @apply text-sm text-gray-500 mt-1;
+}
+
+/* Buttons */
+.btn {
+  @apply px-4 py-2 rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.btn-primary {
+  @apply bg-primary text-white hover:bg-primary-dark focus:ring-primary;
+}
+
+.btn-secondary {
+  @apply bg-secondary text-white hover:bg-secondary-dark focus:ring-secondary;
+}
+
+.btn-danger {
+  @apply bg-danger text-white hover:bg-danger-dark focus:ring-danger;
+}
+
+/* Form Controls */
+.form-input {
+  @apply w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50;
+}
+
+.form-select {
+  @apply w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+/* Tables */
+.table-container {
+  @apply bg-white shadow-md rounded-lg overflow-hidden;
+}
+
+.table {
+  @apply min-w-full divide-y divide-gray-200 table-fixed;
+}
+
+.table-header {
+  @apply bg-gray-50;
+}
+
+.table-header-cell {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative;
+}
+
+.table-body {
+  @apply bg-white divide-y divide-gray-200;
+}
+
+.table-row {
+  @apply hover:bg-gray-50;
+}
+
+.table-cell {
+  @apply px-6 py-4 overflow-hidden text-ellipsis;
+}
+
+/* Resizable table styles */
+.resizer {
+  @apply absolute right-0 top-0 h-full w-1 bg-transparent cursor-col-resize hover:bg-emerald-500 transition-colors;
+}
+
+.resizing {
+  @apply bg-emerald-500;
+}
+
+/* Charts */
+.chart-container {
+  @apply h-80;
+}
+
+.chart-wrapper {
+  @apply w-full h-full;
+}
+
+/* Status Indicators */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-success {
+  @apply bg-success-light text-success-dark;
+}
+
+.badge-warning {
+  @apply bg-warning-light text-warning-dark;
+}
+
+.badge-danger {
+  @apply bg-danger-light text-danger-dark;
+}
+
+/* React Select customization */
+.react-select-container {
+  @apply text-sm;
+}
+
+.react-select__control {
+  @apply !min-h-[38px] !border-gray-300 !rounded-md !shadow-sm hover:!border-emerald-500 focus:!border-emerald-500 focus:!ring-emerald-500;
+}
+
+.react-select__value-container {
+  @apply !py-0;
+}
+
+.react-select__multi-value {
+  @apply !bg-emerald-50;
+}
+
+.react-select__multi-value__label {
+  @apply !text-emerald-700;
+}
+
+.react-select__multi-value__remove {
+  @apply !text-emerald-500 hover:!bg-emerald-100 hover:!text-emerald-700;
+}
+
+.react-select__menu {
+  @apply !rounded-md !shadow-lg !border !border-gray-200;
+}
+
+.react-select__option {
+  @apply !text-sm !py-2;
+}
+
+.react-select__option--is-focused {
+  @apply !bg-emerald-50;
+}
+
+.react-select__option--is-selected {
+  @apply !bg-emerald-100 !text-emerald-700;
+}
+

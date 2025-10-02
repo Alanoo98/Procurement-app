@@ -1,0 +1,22 @@
+{
+  "name": "booked-entries-test",
+  "version": "1.0.0",
+  "description": "Test script to fetch booked entries from Economic API and save to CSV",
+  "main": "test_booked_entries.js",
+  "scripts": {
+    "test": "node test_booked_entries.js",
+    "start": "node test_booked_entries.js"
+  },
+  "dependencies": {
+    "form-data": "^4.0.4",
+    "node-fetch": "^2.6.7"
+  },
+  "keywords": [
+    "economic",
+    "api",
+    "csv",
+    "test"
+  ],
+  "author": "",
+  "license": "MIT"
+}

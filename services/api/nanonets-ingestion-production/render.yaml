@@ -1,0 +1,18 @@
+services:
+  - type: cron
+    name: invoice-ingestion-production
+    env: python
+    plan: free
+    schedule: "0 6 * * *"  # Every day at 6am
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py 2025 10
+    envVars:
+      - key: ECONOMIC_APP_SECRET
+        sync: false
+      - key: ECONOMIC_GRANT_TOKEN_1
+        sync: false
+      # ...add all tokens
+      - key: NANONETS_API_KEY
+        sync: false
+      - key: NANONETS_MODEL_ID
+        sync: false

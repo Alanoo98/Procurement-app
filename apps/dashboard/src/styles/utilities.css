@@ -1,0 +1,57 @@
+/* Utility classes */
+
+/* Spacing utilities */
+.section {
+  @apply p-8;
+}
+
+.section-header {
+  @apply mb-8;
+}
+
+.section-title {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+.section-description {
+  @apply mt-1 text-sm text-gray-500;
+}
+
+/* Layout utilities */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+.grid-responsive {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+}
+
+.grid-responsive-3 {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+
+/* Text utilities */
+.text-truncate {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+}
+
+.text-body {
+  @apply text-sm text-gray-600;
+}
+
+.text-muted {
+  @apply text-sm text-gray-500;
+}
+
+/* Animation utilities */
+.animate-fade {
+  @apply transition-opacity duration-200;
+}
+
+.animate-scale {
+  @apply transition-transform duration-200;
+}

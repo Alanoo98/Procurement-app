@@ -1,0 +1,17 @@
+services:
+  - type: cron
+    name: invoice-ingestion
+    env: python
+    plan: free
+    schedule: "0 8,12 * * *"
+    buildCommand: ""
+    startCommand: "python nanonets-ingestion/main.py"
+    envVars:
+      - key: ECONOMIC_API_KEY
+        sync: false
+      - key: NANONETS_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

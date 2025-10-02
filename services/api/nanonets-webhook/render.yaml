@@ -1,0 +1,16 @@
+# render.yaml
+services:
+  - type: web
+    name: nanonets-webhook
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn nanonets-webhook.webhook_listener:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: DATABASE_URL
+        fromDotEnv: true
+      - key: DEFAULT_ORG_ID
+        fromDotEnv: true
+      - key: DEFAULT_DATA_SOURCE_ID
+        fromDotEnv: true

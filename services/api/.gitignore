@@ -1,0 +1,36 @@
+# Virtual environments
+**/venv/
+**/.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Env files
+.env
+**/.env
+
+# macOS
+.DS_Store
+
+# VSCode settings
+.vscode/
+.history/
+
+# Pytest cache
+.pytest_cache/
+.cache/
+
+# Logs
+*.log
+
+# System files
+Thumbs.db
+
+.env
+
+# Test files
+*.test.py
+test_payload.json

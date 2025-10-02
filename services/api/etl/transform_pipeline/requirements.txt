@@ -1,0 +1,5 @@
+# Core packages
+psycopg2-binary>=2.9.9      # PostgreSQL connector
+python-dotenv>=1.0.1        # .env config loader
+chardet>=5.2.0              # Encoding detection for CSVs
+rapidfuzz>=3.5.2            # Fuzzy string matching
