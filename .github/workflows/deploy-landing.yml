@@ -1,0 +1,36 @@
+name: Deploy Landing
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/landing/**']
+
+jobs:
+  deploy:
+    name: Deploy Landing
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build landing
+        run: npm run build --workspace=apps/landing
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_LANDING_PROJECT_ID }}
+          working-directory: apps/landing

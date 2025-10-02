@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procurement System - Pitch</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            position: relative;
+            margin: 2% auto;
+            width: 95%;
+            max-width: 1400px;
+            max-height: 90vh;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-image-container {
+            overflow: hidden;
+            max-height: 70vh;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            cursor: grab;
+        }
+        
+        .modal-image-container:active {
+            cursor: grabbing;
+        }
+        
+        .modal-image {
+            max-width: none;
+            height: auto;
+            cursor: grab;
+            transition: transform 0.1s ease-out;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        
+        .modal-image:active {
+            cursor: grabbing;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1001;
+        }
+        
+        .image-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 1001;
+        }
+        
+        .control-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .close:hover {
+            color: #ccc;
+        }
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-dot.active {
+            background: #667eea;
+            transform: scale(1.2);
+        }
+        .section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            z-index: 1;
+        }
+        
+        .section.active {
+            opacity: 1;
+            transform: scale(1);
+            z-index: 2;
+        }
+        
+        .section.prev {
+            opacity: 0;
+            transform: scale(1.05);
+            z-index: 0;
+        }
+        
+        /* Ensure smooth background coverage */
+        body {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .slide-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .slide-nav {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .slide-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .slide-dot.active {
+            background: rgba(255, 255, 255, 0.9);
+            transform: scale(1.3);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .slide-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .slide-arrow:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-50%) scale(1.05);
+        }
+        
+        .slide-arrow.prev {
+            left: 30px;
+        }
+        
+        .slide-arrow.next {
+            right: 30px;
+        }
+        
+        .slide-arrow:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .slide-arrow:disabled:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Slide Navigation -->
+    <div class="slide-nav">
+        <button class="slide-dot active" onclick="goToSlide(0)" data-slide="0"></button>
+        <button class="slide-dot" onclick="goToSlide(1)" data-slide="1"></button>
+        <button class="slide-dot" onclick="goToSlide(2)" data-slide="2"></button>
+        <button class="slide-dot" onclick="goToSlide(3)" data-slide="3"></button>
+        <button class="slide-dot" onclick="goToSlide(4)" data-slide="4"></button>
+    </div>
+
+    <!-- Slide Arrows -->
+    <button class="slide-arrow prev" onclick="previousSlide()">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button class="slide-arrow next" onclick="nextSlide()">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+
+    <!-- Section 1: Hero -->
+    <section id="section-0" class="section active bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                Procurement System
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 opacity-90 max-w-4xl mx-auto">
+                <span class="text-green-400 font-semibold">Ét sted for at analysere indkøb og priser</span> - så vi kan sænke vareprocenten, sammenligne effektivitet på tværs af restauranter og være på forkant med afgørende prisændringer
+            </p>
+        </div>
+    </section>
+
+    <!-- Section 2: Hvorfor -->
+    <section id="section-1" class="section bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center text-white mb-12">Hvorfor nu?</h2>
+            
+
+            <!-- Current Pain Points -->
+            <div class="bg-white bg-opacity-10 rounded-lg p-8">
+                <h3 class="text-2xl font-semibold mb-6 text-center">Problemet i dag</h3>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="bg-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chart-line text-white text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Spredte data</h4>
+                        <p class="text-sm opacity-90">Excel-filer, forskellige systemer, ingen central sandhed</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-clock text-white text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Manuelt arbejde</h4>
+                        <p class="text-sm opacity-90">Tidskrævende prisopdateringer og indkøbsanalyse</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-question-circle text-white text-2xl"></i>
+                        </div>
+                        <h4 class="font-semibold mb-2">Manglende indsigt</h4>
+                        <p class="text-sm opacity-90">Svært at se hvad 30% vareprocent faktisk består af</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gevinsten -->
+            <div class="mt-12 bg-green-500 bg-opacity-20 rounded-lg p-8">
+                <h3 class="text-2xl font-semibold mb-6 text-center text-green-400">Gevinsten</h3>
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400 mb-2">Mindre tid</div>
+                        <div class="text-sm">i Excel/Sheets</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400 mb-2">Hurtigere</div>
+                        <div class="text-sm">beslutninger</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400 mb-2">Data-Effektivt</div>
+                        <div class="text-sm">arbejde med vareprocenter</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-400 mb-2">Bedre</div>
+                        <div class="text-sm">og samlet procurementoverblik</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Hvad -->
+    <section id="section-2" class="section bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center text-white mb-12">Hvad får vi?</h2>
+            
+            <!-- Modules Overview -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="bg-white bg-opacity-10 rounded-lg p-6 text-center">
+                    <div class="bg-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-file-alt text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Dokumenter</h3>
+                    <p class="text-sm opacity-90">Alt samlet, duplikater ryddes, sporbarhed</p>
+                </div>
+                <div class="bg-white bg-opacity-10 rounded-lg p-6 text-center">
+                    <div class="bg-green-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-map-marker-alt text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Locations</h3>
+                    <p class="text-sm opacity-90">Ens KPI'er pr. sted → fair sammenligning</p>
+                </div>
+                <div class="bg-white bg-opacity-10 rounded-lg p-6 text-center">
+                    <div class="bg-purple-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-truck text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Suppliers & Products</h3>
+                    <p class="text-sm opacity-90">Kontrakt vs. faktisk pris, prisovervågning</p>
+                </div>
+                <div class="bg-white bg-opacity-10 rounded-lg p-6 text-center">
+                    <div class="bg-orange-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-bar text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Analytics</h3>
+                    <p class="text-sm opacity-90">Real-time insights og benchmarking</p>
+                </div>
+            </div>
+
+            <!-- Core Analytics -->
+            <div class="bg-white bg-opacity-10 rounded-lg p-8">
+                <h3 class="text-2xl font-semibold mb-6 text-center">KERNE-Analytics</h3>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <h4 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-chart-line mr-3 text-green-400"></i>
+                            Efficiency Analysis
+                        </h4>
+                        <ul class="space-y-2 text-sm">
+                            <li>• PAX-baserede nøgletal</li>
+                            <li>• Benchmarking på tværs af lokationer</li>
+                            <li>• Fair sammenligning af performance</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <h4 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-percentage mr-3 text-blue-400"></i>
+                            COGS Analysis
+                        </h4>
+                        <ul class="space-y-2 text-sm">
+                            <li>• Real-time vareprocent vs. budget</li>
+                            <li>• Drill-down til produktniveau</li>
+                            <li>• Prisudvikling og afvigelser</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Flow Button -->
+            <div class="text-center mt-12">
+                <button onclick="openDataFlowModal()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <i class="fas fa-sitemap mr-3"></i>
+                    Se Komplet Data Flow Diagram
+                </button>
+                <p class="text-white opacity-70 mt-2">Klik for at se det fulde system flow</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Hvordan -->
+    <section id="section-3" class="section bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center text-white mb-12">Hvordan fungerer det?</h2>
+            <!-- Demo Case -->
+            <div class="bg-white bg-opacity-10 rounded-lg p-8 mb-8">
+                <h3 class="text-2xl font-semibold mb-6 text-center">Demo Case: "Vareprocent ligger på 30% – hvad består den af?"</h3>
+                
+                <!-- Demo Video -->
+                <div class="text-center mb-8">
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer max-w-2xl mx-auto relative group" onclick="openVideoModal('demos/COGS analysis med eksempel.mp4', 'COGS Analysis Demo')">
+                        <div class="relative h-48 overflow-hidden">
+                            <!-- Actual Video Thumbnail -->
+                            <video 
+                                class="w-full h-full object-cover" 
+                                muted 
+                                preload="metadata"
+                                poster=""
+                                onloadedmetadata="this.currentTime = 0.1; this.pause();"
+                                oncanplay="this.currentTime = 0.1; this.pause();"
+                            >
+                                <source src="demos/COGS analysis med eksempel.mp4" type="video/mp4">
+                            </video>
+                            
+                            <!-- Play Button Overlay -->
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-all duration-300">
+                                <div class="bg-white/90 rounded-full p-4 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                                    <i class="fas fa-play text-orange-600 text-3xl ml-1"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Video Duration Badge -->
+                            <div class="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                                2:45
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-semibold text-lg text-gray-900">COGS Analysis Demo</h4>
+                            <p class="text-sm text-gray-600">Se hvordan vi analyserer vareprocenten trin for trin</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demo Steps -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <div class="bg-green-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-lg">1</span>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-3 text-center">COGS Live</h4>
+                        <p class="text-sm opacity-90 text-center">Undersøg COGS-analysis og spending i real-time dashboard</p>
+                        <ul class="text-xs opacity-80 mt-3 space-y-1">
+                            <li>• Vareprocent vs. budget</li>
+                            <li>• Spending trends</li>
+                            <li>• KPI oversigt</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <div class="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-lg">2</span>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-3 text-center">Deep Dive</h4>
+                        <p class="text-sm opacity-90 text-center">Drill down i deep dive analysis og se produktniveau</p>
+                        <ul class="text-xs opacity-80 mt-3 space-y-1">
+                            <li>• Produktkategorier</li>
+                            <li>• Individuelle varer</li>
+                            <li>• Pris per enhed</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <div class="bg-purple-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-lg">3</span>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-3 text-center">Afvigelser</h4>
+                        <p class="text-sm opacity-90 text-center">Er der produkter der skiller sig ud?</p>
+                        <ul class="text-xs opacity-80 mt-3 space-y-1">
+                            <li>• Prisafvigelser</li>
+                            <li>• Uventede stigninger</li>
+                            <li>• Outlier detection</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white bg-opacity-5 rounded-lg p-6">
+                        <div class="bg-orange-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-lg">4</span>
+                        </div>
+                        <h4 class="font-semibold text-lg mb-3 text-center">Efficiency</h4>
+                        <p class="text-sm opacity-90 text-center">Se efficiency udvikling per lokation - Er spend per pax for højt?</p>
+                        <ul class="text-xs opacity-80 mt-3 space-y-1">
+                            <li>• PAX-baserede beregninger</li>
+                            <li>• Lokationssammenligning</li>
+                            <li>• Efficiency trends</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- Section 6: Demo Videos -->
+    <section id="section-5" class="section bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold text-center text-white mb-12">Demo Videos</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/overview Documents.mkv', 'Documents Overview')">
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Documents Overview</h3>
+                        <p class="text-gray-600 text-sm">Faktura oversigt og management</p>
+                    </div>
+                </div>
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/overview Products.mkv', 'Products Overview')">
+                    <div class="bg-gradient-to-r from-green-500 to-blue-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Products Overview</h3>
+                        <p class="text-gray-600 text-sm">Produkt katalog og mapping</p>
+                    </div>
+                </div>
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/☆ COGS analysis med eksempel.mkv', 'COGS Analysis')">
+                    <div class="bg-gradient-to-r from-orange-500 to-red-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">COGS Analysis</h3>
+                        <p class="text-gray-600 text-sm">Cost of Goods Sold analyse</p>
+                    </div>
+                </div>
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/Product Efficiency Karse.mkv', 'Product Efficiency')">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Product Efficiency</h3>
+                        <p class="text-gray-600 text-sm">Produkt effektivitet analyse</p>
+                    </div>
+                </div>
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/Leverandør-mapping.mp4', 'Supplier Mapping')">
+                    <div class="bg-gradient-to-r from-teal-500 to-green-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Supplier Mapping</h3>
+                        <p class="text-gray-600 text-sm">Leverandør mapping og matching</p>
+                    </div>
+                </div>
+                <div class="card-hover bg-white rounded-lg shadow-lg overflow-hidden cursor-pointer" onclick="openVideoModal('demos/Product-categories-mapping.mp4', 'Category Mapping')">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-48 flex items-center justify-center">
+                        <i class="fas fa-play-circle text-white text-6xl"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg">Category Mapping</h3>
+                        <p class="text-gray-600 text-sm">Produkt kategorisering</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: System Link -->
+    <section id="section-4" class="section bg-gradient-to-b from-teal-800 to-teal-600 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-6xl font-bold mb-12">
+                Se systemet live her:
+            </h2>
+            
+            <a href="https://procurement-eta.vercel.app/" 
+               target="_blank" 
+               class="inline-block bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-12 py-6 rounded-full font-bold text-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 shadow-2xl hover:shadow-emerald-500/25 transform hover:scale-105 hover:-translate-y-2 mb-8">
+                <i class="fas fa-external-link-alt mr-3"></i>
+                https://procurement-eta.vercel.app/
+            </a>
+            
+            <div class="mt-8">
+                <button onclick="openVideoModal('demos/Smør case.mp4', 'Smør Case Eksempel')" 
+                        class="inline-block bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-xl hover:shadow-blue-500/25 transform hover:scale-105">
+                    <i class="fas fa-play mr-2"></i>
+                    Skal i have et eksempel mere?
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Modal for images -->
+    <div id="imageModal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <div class="modal-image-container" id="imageContainer">
+                <div class="zoom-indicator" id="zoomIndicator">100%</div>
+                <div class="image-controls">
+                    <button class="control-btn" onclick="zoomIn()" title="Zoom ind">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="control-btn" onclick="zoomOut()" title="Zoom ud">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="control-btn" onclick="resetZoom()" title="Reset zoom">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                </div>
+                <img id="modalImage" class="modal-image" src="" alt="">
+            </div>
+            <div class="p-4 bg-white">
+                <h3 id="modalTitle" class="text-xl font-semibold"></h3>
+                <p class="text-sm text-gray-600 mt-2">
+                    <i class="fas fa-mouse-pointer mr-1"></i>
+                    Træk for at panne • Scroll for at zoome • Brug knapperne for kontrol
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for videos -->
+    <div id="videoModal" class="modal">
+        <span class="close" onclick="closeVideoModal()">&times;</span>
+        <div class="modal-content">
+            <video id="modalVideo" controls style="width: 100%; height: auto;">
+                <source src="" type="video/mp4">
+                <source src="" type="video/x-matroska">
+                Din browser understøtter ikke video elementet.
+            </video>
+            <div class="p-4">
+                <h3 id="videoTitle" class="text-xl font-semibold"></h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Screenshots (over data flow modal) -->
+    <div id="screenshotModal" class="modal" style="z-index: 10001;">
+        <span class="close" onclick="closeScreenshotModal()">&times;</span>
+        <div class="modal-content max-w-4xl">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4">
+                <h2 class="text-xl font-bold text-center" id="screenshotTitle">Screenshot</h2>
+            </div>
+            <div class="modal-image-container bg-gray-100 rounded-lg overflow-hidden" id="screenshotContainer" style="max-height: 80vh;">
+                <div class="zoom-indicator" id="screenshotZoomIndicator">100%</div>
+                <div class="image-controls">
+                    <button class="control-btn" onclick="zoomInScreenshot()" title="Zoom ind">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="control-btn" onclick="zoomOutScreenshot()" title="Zoom ud">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="control-btn" onclick="resetZoomScreenshot()" title="Reset zoom">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                </div>
+                <img id="screenshotImage" class="modal-image" src="" alt="Screenshot">
+            </div>
+            <p class="text-sm text-gray-600 text-center p-4">
+                <i class="fas fa-mouse-pointer mr-1"></i>
+                Træk for at panne • Scroll for at zoome • Brug knapperne for kontrol
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal for Data Flow Diagram -->
+    <div id="dataFlowModal" class="modal">
+        <span class="close" onclick="closeDataFlowModal()">&times;</span>
+        <div class="modal-content max-w-7xl">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+                <h2 class="text-2xl font-bold text-center">Komplet Data Flow Diagram</h2>
+                <p class="text-center mt-2 opacity-90">System arkitektur og data pipeline</p>
+            </div>
+            
+            <!-- Simplified Data Flow Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6">
+                <!-- Left Side: Simplified Data Flow -->
+                <div class="lg:col-span-1 space-y-6">
+                    <h3 class="text-2xl font-semibold text-gray-900 mb-6">Data Flow Forklaring</h3>
+                    
+                    <!-- Simplified 4-Step Process -->
+                    <div class="space-y-6">
+                        <!-- Step 1 -->
+                        <div class="bg-blue-50 rounded-lg p-6 border-l-4 border-blue-500">
+                            <h4 class="font-semibold text-blue-600 mb-3 flex items-center text-lg">
+                                <span class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                                Data Sources
+                            </h4>
+                            <p class="text-gray-700 text-sm">Automatisk hentning af fakturaer fra e-conomic API og booking data fra Azure SQL</p>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="bg-purple-50 rounded-lg p-6 border-l-4 border-purple-500">
+                            <h4 class="font-semibold text-purple-600 mb-3 flex items-center text-lg">
+                                <span class="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                                AI Processing
+                                <img src="screens/Nanonets.png" alt="Nanonets" class="w-8 h-8 rounded cursor-pointer ml-2 hover:scale-110 transition-transform" onclick="openScreenshotModal('screens/Nanonets.png', 'Nanonets OCR')" title="Se Nanonets screenshot">
+                            </h4>
+                            <p class="text-gray-700 text-sm">Nanonets OCR læser og udtrækker data fra fakturaer automatisk</p>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="bg-green-50 rounded-lg p-6 border-l-4 border-green-500">
+                            <h4 class="font-semibold text-green-600 mb-3 flex items-center text-lg">
+                                <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm font-bold">3</span>
+                                ETL Pipeline
+                                <img src="screens/Database screenshot.png" alt="Database" class="w-8 h-8 rounded cursor-pointer ml-2 hover:scale-110 transition-transform" onclick="openScreenshotModal('screens/Database screenshot.png', 'Database Screenshot')" title="Se Database screenshot">
+                            </h4>
+                            <p class="text-gray-700 text-sm">Data normaliseres, leverandører matches og business logic anvendes</p>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="bg-orange-50 rounded-lg p-6 border-l-4 border-orange-500">
+                            <h4 class="font-semibold text-orange-600 mb-3 flex items-center text-lg">
+                                <span class="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 text-sm font-bold">4</span>
+                                Analytics
+                                <img src="screens/Nanonets Extraction.png" alt="Data Extraction" class="w-8 h-8 rounded cursor-pointer ml-2 hover:scale-110 transition-transform" onclick="openScreenshotModal('screens/Nanonets Extraction.png', 'Nanonets Extraction')" title="Se Data Extraction screenshot">
+                            </h4>
+                            <p class="text-gray-700 text-sm">Real-time prisovervågning og CPG beregninger for optimering</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side: Data Flow Diagram and Screenshots -->
+                <div class="lg:col-span-2 space-y-6">
+                    <h3 class="text-2xl font-semibold text-gray-900">System Arkitektur Diagram</h3>
+                    <div class="modal-image-container bg-gray-100 rounded-lg overflow-hidden" id="dataFlowContainer" style="max-height: 70vh;">
+                        <div class="zoom-indicator" id="dataFlowZoomIndicator">100%</div>
+                        <div class="image-controls">
+                            <button class="control-btn" onclick="zoomInDataFlow()" title="Zoom ind">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="control-btn" onclick="zoomOutDataFlow()" title="Zoom ud">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="control-btn" onclick="resetZoomDataFlow()" title="Reset zoom">
+                                <i class="fas fa-expand-arrows-alt"></i>
+                            </button>
+                        </div>
+                        <img id="dataFlowImage" class="modal-image" src="screens/Data Flow Diagram.png" alt="Data Flow Diagram">
+                    </div>
+                    <p class="text-sm text-gray-600 text-center">
+                        <i class="fas fa-mouse-pointer mr-1"></i>
+                        Træk for at panne • Scroll for at zoome • Brug knapperne for kontrol
+                    </p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Slide Navigation
+        let currentSlide = 0;
+        const totalSlides = 5;
+
+        function goToSlide(slideIndex) {
+            if (slideIndex < 0 || slideIndex >= totalSlides) return;
+            if (slideIndex === currentSlide) return; // Prevent unnecessary transitions
+            
+            const currentSection = document.getElementById(`section-${currentSlide}`);
+            const targetSection = document.getElementById(`section-${slideIndex}`);
+            
+            // Add target section to DOM if not already there
+            if (!targetSection.classList.contains('active')) {
+                targetSection.style.display = 'flex';
+            }
+            
+            // Start transition
+            currentSection.classList.remove('active');
+            currentSection.classList.add('prev');
+            
+            // Small delay to ensure smooth transition
+            setTimeout(() => {
+                targetSection.classList.remove('prev');
+                targetSection.classList.add('active');
+                
+                // Hide previous section after transition
+                setTimeout(() => {
+                    currentSection.style.display = 'none';
+                }, 500);
+            }, 50);
+            
+            // Update slide dots
+            document.querySelectorAll('.slide-dot').forEach(dot => {
+                dot.classList.remove('active');
+            });
+            document.querySelector(`[data-slide="${slideIndex}"]`).classList.add('active');
+            
+            // Update arrow states
+            updateArrowStates(slideIndex);
+            
+            currentSlide = slideIndex;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                goToSlide(currentSlide + 1);
+            }
+        }
+
+        function previousSlide() {
+            if (currentSlide > 0) {
+                goToSlide(currentSlide - 1);
+            }
+        }
+
+        function updateArrowStates(slideIndex) {
+            const prevArrow = document.querySelector('.slide-arrow.prev');
+            const nextArrow = document.querySelector('.slide-arrow.next');
+            
+            // Disable prev arrow on first slide
+            if (slideIndex === 0) {
+                prevArrow.disabled = true;
+            } else {
+                prevArrow.disabled = false;
+            }
+            
+            // Disable next arrow on last slide
+            if (slideIndex === totalSlides - 1) {
+                nextArrow.disabled = true;
+            } else {
+                nextArrow.disabled = false;
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key === 'Escape') {
+                closeModal();
+                closeVideoModal();
+                closeDataFlowModal();
+                closeScreenshotModal();
+            }
+        });
+
+        // Initialize arrow states on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateArrowStates(0);
+        });
+
+        // Modal functions
+        function openModal(imageSrc, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            modalImage.src = imageSrc;
+            modalTitle.textContent = title;
+            modal.style.display = 'block';
+            
+            // Reset zoom and position
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            applyZoom('modalImage', 'zoomIndicator');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function openVideoModal(videoSrc, title) {
+            const modal = document.getElementById('videoModal');
+            const modalVideo = document.getElementById('modalVideo');
+            const videoTitle = document.getElementById('videoTitle');
+            
+            modalVideo.src = videoSrc;
+            videoTitle.textContent = title;
+            modal.style.display = 'block';
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const modalVideo = document.getElementById('modalVideo');
+            modal.style.display = 'none';
+            modalVideo.pause();
+        }
+
+        // Screenshot Modal functions
+        function openScreenshotModal(imageSrc, title) {
+            const modal = document.getElementById('screenshotModal');
+            const modalImage = document.getElementById('screenshotImage');
+            const modalTitle = document.getElementById('screenshotTitle');
+            
+            modalImage.src = imageSrc;
+            modalTitle.textContent = title;
+            modal.style.display = 'block';
+            
+            // Reset zoom and position to original size
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            
+            // Wait for image to load, then apply original size
+            modalImage.onload = function() {
+                applyZoom('screenshotImage', 'screenshotZoomIndicator');
+            };
+            
+            // Apply immediately if image is already loaded
+            if (modalImage.complete) {
+                applyZoom('screenshotImage', 'screenshotZoomIndicator');
+            }
+        }
+
+        function closeScreenshotModal() {
+            document.getElementById('screenshotModal').style.display = 'none';
+        }
+
+        // Data Flow Modal functions
+        function openDataFlowModal() {
+            document.getElementById('dataFlowModal').style.display = 'block';
+            
+            // Reset zoom and position
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+        }
+
+        function closeDataFlowModal() {
+            document.getElementById('dataFlowModal').style.display = 'none';
+        }
+
+        // Enhanced image zoom and pan functionality
+        let currentZoom = 1;
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+        let currentImage = null;
+        let currentContainer = null;
+
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom * 1.3, 8);
+            applyZoom('modalImage', 'zoomIndicator');
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom / 1.3, 0.2);
+            applyZoom('modalImage', 'zoomIndicator');
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            applyZoom('modalImage', 'zoomIndicator');
+        }
+
+        function zoomInDataFlow() {
+            currentZoom = Math.min(currentZoom * 1.3, 8);
+            applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+        }
+
+        function zoomOutDataFlow() {
+            currentZoom = Math.max(currentZoom / 1.3, 0.2);
+            applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+        }
+
+        function resetZoomDataFlow() {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+        }
+
+        // Screenshot Modal zoom functions
+        function zoomInScreenshot() {
+            currentZoom = Math.min(currentZoom * 1.2, 5);
+            applyZoom('screenshotImage', 'screenshotZoomIndicator');
+        }
+
+        function zoomOutScreenshot() {
+            currentZoom = Math.max(currentZoom / 1.2, 0.5);
+            applyZoom('screenshotImage', 'screenshotZoomIndicator');
+        }
+
+        function resetZoomScreenshot() {
+            currentZoom = 1;
+            translateX = 0;
+            translateY = 0;
+            applyZoom('screenshotImage', 'screenshotZoomIndicator');
+        }
+
+        function applyZoom(imageId, indicatorId) {
+            const image = document.getElementById(imageId);
+            const indicator = document.getElementById(indicatorId);
+            if (image && indicator) {
+                image.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+                image.style.transformOrigin = 'center center';
+                indicator.textContent = Math.round(currentZoom * 100) + '%';
+            }
+        }
+
+        // Enhanced mouse wheel zoom with smooth centering
+        document.addEventListener('wheel', function(e) {
+            const imageModal = document.getElementById('imageModal');
+            const dataFlowModal = document.getElementById('dataFlowModal');
+            
+            if (imageModal.style.display === 'block' || dataFlowModal.style.display === 'block') {
+                e.preventDefault();
+                
+                const rect = e.target.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.max(0.2, Math.min(8, currentZoom * delta));
+                
+                if (newZoom !== currentZoom) {
+                    // Calculate zoom center point
+                    const zoomFactor = newZoom / currentZoom;
+                    const mouseX = e.clientX - centerX;
+                    const mouseY = e.clientY - centerY;
+                    
+                    translateX = (translateX - mouseX) * zoomFactor + mouseX;
+                    translateY = (translateY - mouseY) * zoomFactor + mouseY;
+                    currentZoom = newZoom;
+                    
+                    if (imageModal.style.display === 'block') {
+                        applyZoom('modalImage', 'zoomIndicator');
+                    } else {
+                        applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+                    }
+                }
+            }
+        }, { passive: false });
+
+        // Enhanced drag functionality
+        document.addEventListener('mousedown', function(e) {
+            if (e.target.classList.contains('modal-image') || e.target.classList.contains('modal-image-container')) {
+                isDragging = true;
+                startX = e.clientX - translateX;
+                startY = e.clientY - translateY;
+                currentImage = e.target.closest('.modal-image-container').querySelector('.modal-image');
+                currentContainer = e.target.closest('.modal-image-container');
+                currentContainer.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging || !currentImage) return;
+            e.preventDefault();
+            
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            
+            // Dynamic constraints based on zoom level and image size
+            const container = currentImage.closest('.modal-image-container');
+            const containerRect = container.getBoundingClientRect();
+            const imageRect = currentImage.getBoundingClientRect();
+            
+            // Calculate how much the image extends beyond container when zoomed
+            const imageWidth = imageRect.width;
+            const imageHeight = imageRect.height;
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            // Allow panning to show the full zoomed image
+            const maxTranslateX = Math.max(0, (imageWidth - containerWidth) / 2 + 50);
+            const maxTranslateY = Math.max(0, (imageHeight - containerHeight) / 2 + 50);
+            
+            translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
+            translateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY));
+            
+            if (currentImage.id === 'modalImage') {
+                applyZoom('modalImage', 'zoomIndicator');
+            } else {
+                applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                if (currentContainer) {
+                    currentContainer.style.cursor = 'grab';
+                }
+                currentImage = null;
+                currentContainer = null;
+            }
+        });
+
+        // Touch support for mobile
+        let lastTouchDistance = 0;
+        let lastTouchCenter = { x: 0, y: 0 };
+
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('modal-image') || e.target.classList.contains('modal-image-container')) {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    // Pinch zoom
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    lastTouchDistance = Math.sqrt(
+                        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+                        Math.pow(touch2.clientY - touch1.clientY, 2)
+                    );
+                    lastTouchCenter = {
+                        x: (touch1.clientX + touch2.clientX) / 2,
+                        y: (touch1.clientY + touch2.clientY) / 2
+                    };
+                } else if (e.touches.length === 1) {
+                    // Single touch drag
+                    const touch = e.touches[0];
+                    startX = touch.clientX - translateX;
+                    startY = touch.clientY - translateY;
+                    isDragging = true;
+                    currentImage = e.target.closest('.modal-image-container').querySelector('.modal-image');
+                    currentContainer = e.target.closest('.modal-image-container');
+                }
+            }
+        });
+
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.classList.contains('modal-image') || e.target.classList.contains('modal-image-container')) {
+                e.preventDefault();
+                
+                if (e.touches.length === 2) {
+                    // Pinch zoom
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const distance = Math.sqrt(
+                        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+                        Math.pow(touch2.clientY - touch1.clientY, 2)
+                    );
+                    
+                    if (lastTouchDistance > 0) {
+                        const scale = distance / lastTouchDistance;
+                        const newZoom = Math.max(0.2, Math.min(8, currentZoom * scale));
+                        
+                        if (newZoom !== currentZoom) {
+                            const zoomFactor = newZoom / currentZoom;
+                            const centerX = lastTouchCenter.x - e.target.getBoundingClientRect().left - e.target.getBoundingClientRect().width / 2;
+                            const centerY = lastTouchCenter.y - e.target.getBoundingClientRect().top - e.target.getBoundingClientRect().height / 2;
+                            
+                            translateX = (translateX - centerX) * zoomFactor + centerX;
+                            translateY = (translateY - centerY) * zoomFactor + centerY;
+                            currentZoom = newZoom;
+                            
+                            if (currentImage && currentImage.id === 'modalImage') {
+                                applyZoom('modalImage', 'zoomIndicator');
+                            } else if (currentImage && currentImage.id === 'dataFlowImage') {
+                                applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+                            }
+                        }
+                    }
+                    lastTouchDistance = distance;
+                } else if (e.touches.length === 1 && isDragging) {
+                    // Single touch drag
+                    const touch = e.touches[0];
+                    translateX = touch.clientX - startX;
+                    translateY = touch.clientY - startY;
+                    
+                    // Dynamic constraints based on zoom level and image size
+                    const container = currentImage.closest('.modal-image-container');
+                    const containerRect = container.getBoundingClientRect();
+                    const imageRect = currentImage.getBoundingClientRect();
+                    
+                    // Calculate how much the image extends beyond container when zoomed
+                    const imageWidth = imageRect.width;
+                    const imageHeight = imageRect.height;
+                    const containerWidth = containerRect.width;
+                    const containerHeight = containerRect.height;
+                    
+                    // Allow panning to show the full zoomed image
+                    const maxTranslateX = Math.max(0, (imageWidth - containerWidth) / 2 + 50);
+                    const maxTranslateY = Math.max(0, (imageHeight - containerHeight) / 2 + 50);
+                    
+                    translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX));
+                    translateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY));
+                    
+                    if (currentImage && currentImage.id === 'modalImage') {
+                        applyZoom('modalImage', 'zoomIndicator');
+                    } else if (currentImage && currentImage.id === 'dataFlowImage') {
+                        applyZoom('dataFlowImage', 'dataFlowZoomIndicator');
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (e.touches.length === 0) {
+                isDragging = false;
+                lastTouchDistance = 0;
+                currentImage = null;
+                currentContainer = null;
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const imageModal = document.getElementById('imageModal');
+            const videoModal = document.getElementById('videoModal');
+            const dataFlowModal = document.getElementById('dataFlowModal');
+            
+            if (event.target === imageModal) {
+                closeModal();
+            }
+            if (event.target === videoModal) {
+                closeVideoModal();
+            }
+            if (event.target === dataFlowModal) {
+                closeDataFlowModal();
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+                closeVideoModal();
+                closeDataFlowModal();
+            }
+        });
+
+    </script>
+</body>
+</html>
+

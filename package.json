@@ -1,0 +1,27 @@
+{
+  "name": "procurement-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AI-powered procurement management system",
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/dashboard\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/landing\"",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "rimraf node_modules && npm run clean --workspaces",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
