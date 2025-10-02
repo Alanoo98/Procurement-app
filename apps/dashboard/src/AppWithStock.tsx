@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { OrganizationProvider } from '@/contexts/OrganizationContext';
 import { StockProvider } from '@/contexts/StockContext';
 import { ProtectedRoute } from '@/components/features/auth/ProtectedRoute';
