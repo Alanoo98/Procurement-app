@@ -24,7 +24,9 @@ jobs:
           cd ../landing && npm install
       - name: Skip linting for now
         run: echo "Linting skipped - focusing on deployment"
-      - name: Build dashboard only
+      - name: Check files and build dashboard
         run: |
           cd apps/dashboard
+          ls -la src/lib/
+          cat src/lib/supabase.ts | head -5
           npm run build

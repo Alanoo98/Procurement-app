@@ -17,6 +17,7 @@ export default defineConfig({
       '@/types': path.resolve(__dirname, './src/types'),
       '@/lib': path.resolve(__dirname, './src/lib'),
     },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
