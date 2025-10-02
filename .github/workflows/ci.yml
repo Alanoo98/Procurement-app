@@ -14,12 +14,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Install dependencies
+      - name: Clean install dependencies
         run: |
+          rm -rf node_modules package-lock.json
+          rm -rf apps/*/node_modules apps/*/package-lock.json
           npm install
-          cd apps/dashboard && npm install
-          cd ../admin && npm install  
-          cd ../landing && npm install
+          cd apps/dashboard && rm -rf node_modules package-lock.json && npm install
+          cd ../admin && rm -rf node_modules package-lock.json && npm install
+          cd ../landing && rm -rf node_modules package-lock.json && npm install
       - name: Skip linting for now
         run: echo "Linting skipped - focusing on deployment"
       - name: Check files and build dashboard
