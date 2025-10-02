@@ -23,7 +23,7 @@ Procurement/
 - **Platform**: Vercel for all frontend applications
 - **Trigger Strategy**: Path-based (only deploys when specific app directories change)
 - **Environment**: Production environment protection enabled
-- **Node Version**: 18.x across all workflows
+- **Node Version**: 20.x across all workflows
 
 ## Workflows
 
@@ -38,12 +38,12 @@ Procurement/
 **Current Configuration**:
 - ✅ **Enabled**: Basic testing and dashboard build validation
 - ❌ **Disabled**: Linting (commented out for focus on deployment)
-- 🔧 **Node.js**: Version 18
+- 🔧 **Node.js**: Version 20
 - 🧹 **Dependencies**: Clean install for all workspaces
 
 **Steps**:
 1. Checkout code
-2. Setup Node.js 18
+2. Setup Node.js 20
 3. Clean install dependencies for all apps
 4. Build dashboard application
 5. Validate build output
@@ -59,7 +59,7 @@ Procurement/
 
 **Deployment Flow**:
 1. Checkout code
-2. Setup Node.js 18 with npm caching
+2. Setup Node.js 20 with npm caching
 3. Install dependencies (`npm ci`)
 4. Build dashboard (`npm run build --workspace=apps/dashboard`)
 5. Deploy to Vercel
@@ -81,7 +81,7 @@ Procurement/
 
 **Deployment Flow**:
 1. Checkout code
-2. Setup Node.js 18 with npm caching
+2. Setup Node.js 20 with npm caching
 3. Install dependencies (`npm ci`)
 4. Build admin (`npm run build --workspace=apps/admin`)
 5. Deploy to Vercel
@@ -103,7 +103,7 @@ Procurement/
 
 **Deployment Flow**:
 1. Checkout code
-2. Setup Node.js 18 with npm caching
+2. Setup Node.js 20 with npm caching
 3. Install dependencies (`npm ci`)
 4. Build landing (`npm run build --workspace=apps/landing`)
 5. Deploy to Vercel
