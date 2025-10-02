@@ -4,7 +4,7 @@ import { Eye, Handshake, ArrowUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/utils/format';
 import { useTableColumns } from '@/hooks/useTableColumns';
-// import { getPriceValue } from '@/utils/getPriceValue';
+// import { getPriceValue } from '@/utils/getPriceValue'; test
 
 type Agreement = {
   id: string;
