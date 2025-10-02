@@ -21,7 +21,9 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install --workspace=apps/dashboard
 
       - name: Build dashboard
         run: npm run build --workspace=apps/dashboard

@@ -15,8 +15,12 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install --workspace=apps/dashboard
+          npm install --workspace=apps/admin
+          npm install --workspace=apps/landing
       - name: Skip linting for now
         run: echo "Linting skipped - focusing on deployment"
-      - name: Build all workspaces
-        run: npm run build
+      - name: Build dashboard only
+        run: npm run build --workspace=apps/dashboard

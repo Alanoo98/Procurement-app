@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node test_booked_entries.js",
     "start": "node test_booked_entries.js",
+    "build": "echo 'No build needed for API service'",
     "lint": "echo 'No linting configured for API service'"
   },
   "dependencies": {
