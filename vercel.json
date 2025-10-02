@@ -1,6 +1,8 @@
 {
-  "buildCommand": "npm run build",
+  "version": 2,
+  "framework": "vite",
+  "installCommand": "npm install && npm install --prefix apps/dashboard",
+  "buildCommand": "npm run build --prefix apps/dashboard",
   "outputDirectory": "apps/dashboard/dist",
-  "installCommand": "npm install",
-  "framework": "vite"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD apps/dashboard"
 }
