@@ -14,7 +14,7 @@ AI-powered procurement management system for restaurant groups and hospitality b
 1. **Clone and install**
    ```bash
    git clone https://github.com/Alanoo98/Procurement-app.git
-   cd "Procurement d6"
+   cd "Procurement"
    npm install
    ```
 

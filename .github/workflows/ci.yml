@@ -15,19 +15,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Clean install dependencies
+      - name: Install dependencies
+        run: npm ci
+      - name: Run linting
+        run: npm run lint
+      - name: Build all applications
         run: |
-          rm -rf node_modules package-lock.json
-          rm -rf apps/*/node_modules apps/*/package-lock.json
-          npm install
-          cd apps/dashboard && npm install
-          cd ../admin && npm install
-          cd ../landing && npm install
-      - name: Skip linting for now
-        run: echo "Linting skipped - focusing on deployment"
-      - name: Check files and build dashboard
-        run: |
-          cd apps/dashboard
-          ls -la src/lib/
-          cat src/lib/supabase.ts | head -5
-          npm run build
+          npm run build --workspace=apps/dashboard
+          npm run build --workspace=apps/admin
+          npm run build --workspace=apps/landing

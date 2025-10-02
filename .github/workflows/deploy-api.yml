@@ -1,13 +1,14 @@
-name: Deploy Dashboard
+name: Deploy API Services
 
 on:
   push:
     branches: [main]
-    paths: ['apps/dashboard/**']
+    paths: ['services/api/**']
+  workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy Dashboard
+  deploy-booking-integration:
+    name: Deploy Booking Integration Service
     runs-on: ubuntu-latest
     environment: production
     
@@ -15,22 +16,68 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          python-version: '3.11'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd services/api/booking_integration_service
+          pip install -r requirements.txt
 
-      - name: Build dashboard
-        run: npm run build --workspace=apps/dashboard
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: apps/dashboard
+          service-id: ${{ secrets.RENDER_BOOKING_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+  deploy-etl:
+    name: Deploy ETL Service
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd services/api/etl
+          pip install -r requirements.txt
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_ETL_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+  deploy-nanonets-webhook:
+    name: Deploy Nanonets Webhook
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd services/api/nanonets-webhook
+          pip install -r requirements.txt
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_NANONETS_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
