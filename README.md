@@ -5,59 +5,98 @@ AI-powered procurement management system for restaurant groups and hospitality b
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+ (recommended)
 - Python 3.11+
-- Docker & Docker Compose
+- Docker & Docker Compose (optional)
 
 ### Development Setup
 
 1. **Clone and install**
    ```bash
-   git clone <your-repo-url>
-   cd procurement-system
+   git clone https://github.com/Alanoo98/Procurement-app.git
+   cd "Procurement d6"
    npm install
    ```
 
-2. **Start database services**
+2. **Start individual applications**
    ```bash
-   npm run docker:up
+   # Dashboard (main app)
+   cd apps/dashboard
+   npm install
+   npm run dev
+   # Access: http://localhost:3000
+   
+   # Admin portal
+   cd apps/admin
+   npm install
+   npm run dev
+   # Access: http://localhost:3001
+   
+   # Landing page
+   cd apps/landing
+   npm install
+   npm run dev
+   # Access: http://localhost:3002
    ```
 
-3. **Start all applications**
+3. **Or start all at once** (if you have all dependencies installed)
    ```bash
    npm run dev
    ```
 
-4. **Access applications**
-   - Dashboard: http://localhost:3000
-   - Admin: http://localhost:3001  
-   - Landing: http://localhost:3002
-
 ## 📁 Project Structure
 
 ```
-procurement-system/
+Procurement/
 ├── apps/                    # Frontend applications
-│   ├── dashboard/          # Main dashboard
-│   ├── admin/              # Admin interface
-│   └── landing/            # Marketing site
+│   ├── dashboard/          # Main dashboard (React + Vite)
+│   ├── admin/              # Admin interface (React + Vite)
+│   └── landing/            # Marketing site (React + Vite)
 ├── services/               # Backend services
-│   └── api/                # Main API service
+│   └── api/                # Main API service (Python)
 ├── docs/                   # Documentation
-└── docker-compose.yml      # Local development
+├── .github/workflows/      # CI/CD workflows
+└── vercel.json            # Vercel configuration
 ```
 
 ## 🔧 Available Scripts
 
-- `npm run dev` - Start all applications
+### Root Level
+- `npm run dev` - Start all applications (if dependencies installed)
 - `npm run build` - Build all applications
 - `npm run test` - Run all tests
 - `npm run lint` - Lint all code
 - `npm run docker:up` - Start database services
 - `npm run docker:down` - Stop database services
 
+### Individual Apps
+Each app has its own scripts:
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
 ## 🚀 Deployment
 
-- **Frontend**: Deploy to Vercel
-- **Backend**: Deploy to Render
+### Frontend Applications
+- **Dashboard**: Deploy to Vercel (main app)
+- **Admin**: Deploy to Vercel (admin portal)
+- **Landing**: Deploy to Vercel (marketing site)
+
+### Backend Services
+- **API**: Deploy to Render
 - **Database**: Managed by Supabase
+
+### Environment Variables
+Each app needs its own environment variables:
+- **Dashboard**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- **Admin**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- **Landing**: `VITE_API_URL` (optional)
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
+- **Backend**: Python, FastAPI
+- **Database**: Supabase (PostgreSQL)
+- **Deployment**: Vercel (frontend), Render (backend)
+- **CI/CD**: GitHub Actions
