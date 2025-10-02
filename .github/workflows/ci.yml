@@ -3,6 +3,7 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    paths-ignore: ['apps/dashboard/**']
   pull_request:
     branches: [main]
 
