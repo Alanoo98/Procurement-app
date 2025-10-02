@@ -14,10 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '18'
-      - name: Clean and install dependencies
+      - name: Install dependencies
         run: |
-          rm -rf node_modules package-lock.json
-          rm -rf apps/*/node_modules apps/*/package-lock.json
           npm install
           cd apps/dashboard && npm install
           cd ../admin && npm install  
