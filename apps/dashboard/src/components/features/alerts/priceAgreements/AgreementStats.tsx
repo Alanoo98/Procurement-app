@@ -7,7 +7,7 @@ interface AgreementStatsProps {
     complianceRate: number;
     spendCoverage: number;
     totalSavingsPotential: number;
-    productsWithoutAgreements: any[];
+    productsWithoutAgreements: unknown[];
   };
 }
 

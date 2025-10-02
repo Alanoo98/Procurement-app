@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatCurrency } from '@/utils/format';
 import { ProductEfficiencyChart, TimeBasedEfficiencyMetric } from '@/hooks/metrics/useTimeBasedEfficiency';
 

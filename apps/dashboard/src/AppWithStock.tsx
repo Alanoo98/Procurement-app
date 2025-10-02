@@ -46,9 +46,9 @@ function App() {
   const { isCollapsed } = useSidebarStore();
   const [universe, setUniverse] = useState<Universe>('procurement');
 
-  const handleSwitchToStock = () => {
-    setUniverse('stock');
-  };
+  // const handleSwitchToStock = () => {
+  //   setUniverse('stock');
+  // };
 
   const handleSwitchToProcurement = () => {
     setUniverse('procurement');
