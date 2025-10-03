@@ -6,11 +6,12 @@ services:
     region: frankfurt
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn nanonets-webhook.webhook_listener:app --host 0.0.0.0 --port 10000
+    startCommand: python start.py
+    healthCheckPath: /healthz
     envVars:
       - key: DATABASE_URL
         fromDotEnv: true
-      - key: DEFAULT_ORG_ID
+      - key: NANONETS_MODEL_ID
         fromDotEnv: true
-      - key: DEFAULT_DATA_SOURCE_ID
+      - key: DEFAULT_ORG_ID
         fromDotEnv: true

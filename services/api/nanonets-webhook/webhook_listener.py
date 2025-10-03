@@ -17,6 +17,16 @@ app = FastAPI()
 async def root():
     return {"message": "Nanonets webhook is live!"}
 
+@app.get("/healthz")
+async def health_check():
+    """Health check endpoint for Render monitoring"""
+    try:
+        # Test database connection
+        cur.execute("SELECT 1")
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+
 # --- DB connection ---
 conn = psycopg2.connect(os.getenv("DATABASE_URL"))
 cur = conn.cursor()
