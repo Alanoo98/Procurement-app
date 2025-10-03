@@ -253,8 +253,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSwitchToStock }) => {
              <li className="mt-auto">
               <div className="border-t border-gray-700/50 my-4" />
               
-              {/* Stock Management Button */}
-              {onSwitchToStock && (
+              {/* Stock Management Button - Hidden for now */}
+              {/* {onSwitchToStock && (
                 <button
                   onClick={onSwitchToStock}
                   className="group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-700/50 hover:text-blue-400 w-full mb-2"
@@ -262,7 +262,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSwitchToStock }) => {
                   <Package className="h-6 w-6 shrink-0" />
                   {!isCollapsed && <span>Stock Management</span>}
                 </button>
-              )}
+              )} */}
               
               {secondaryNavigation.map((item) => (
                 <NavLink
