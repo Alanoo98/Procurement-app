@@ -31,12 +31,28 @@ organization_id = args.organization_id
 
     # Script called with organization_id
 
+def _clean_env(value: str) -> str:
+    if value is None:
+        return value
+    v = value.strip()
+    if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+        v = v[1:-1].strip()
+    return v
+
+DB_NAME = _clean_env(os.getenv("DB_NAME"))
+DB_USER = _clean_env(os.getenv("DB_USER"))
+DB_PASSWORD = _clean_env(os.getenv("DB_PASSWORD"))
+DB_HOST = _clean_env(os.getenv("DB_HOST"))
+DB_PORT = _clean_env(os.getenv("DB_PORT"))
+DB_SSLMODE = _clean_env(os.getenv("DB_SSLMODE") or "require")
+
 conn = psycopg2.connect(
-    dbname=os.getenv("DB_NAME"),
-    user=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST"),
-    port=os.getenv("DB_PORT"),
+    dbname=DB_NAME,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    sslmode=DB_SSLMODE,
 )
 
 def get_cursor():
@@ -50,11 +66,12 @@ def get_cursor():
         # If connection is broken, reconnect
         print("🔄 Connection lost, reconnecting...")
         conn = psycopg2.connect(
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode=DB_SSLMODE,
         )
         return conn.cursor()
 
