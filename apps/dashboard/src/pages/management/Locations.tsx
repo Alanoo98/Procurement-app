@@ -29,16 +29,23 @@ export const LocationsPage: React.FC = () => {
   
   // Get all location metrics data
   const { data: allLocationData, isLoading, error } = useInvoiceMetrics('location');
+  
+  // Debug logging
+  console.log('🏢 Locations page - allLocationData:', allLocationData);
+  console.log('🏢 Locations page - isLoading:', isLoading);
+  console.log('🏢 Locations page - error:', error);
 
   // Apply local search filtering to the data
   const filteredData = useMemo(() => {
     if (!allLocationData || !searchTerm) return allLocationData;
     
     const term = searchTerm.toLowerCase();
-    return allLocationData.filter((location: LocationMetric) => 
+    const filtered = allLocationData.filter((location: LocationMetric) => 
       location.label?.toLowerCase().includes(term) ||
       location.address?.toLowerCase().includes(term)
     );
+    console.log('🔍 Filtered data:', filtered.length, 'items');
+    return filtered;
   }, [allLocationData, searchTerm]);
 
 
@@ -87,6 +94,11 @@ export const LocationsPage: React.FC = () => {
     goToPage,
     totalItems,
   } = usePagination(filteredSortedLocations);
+  
+  // Debug pagination
+  console.log('📄 Pagination - filteredSortedLocations:', filteredSortedLocations.length);
+  console.log('📄 Pagination - paginatedItems:', paginatedItems.length);
+  console.log('📄 Pagination - totalItems:', totalItems);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {

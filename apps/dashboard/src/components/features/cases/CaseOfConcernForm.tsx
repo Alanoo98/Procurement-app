@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertTriangle } from 'lucide-react';
-import { useCasesOfConcern, useCaseOfConcern, useOrganizationUsers } from '@/hooks/data/useCasesOfConcern';
+import { useCasesOfConcern } from '@/hooks/data/useCasesOfConcern';
 import { CreateCaseOfConcernInput, UpdateCaseOfConcernInput, ConcernType, ConcernStatus, ConcernPriority } from '../../types';
 
 interface CaseOfConcernFormProps {
@@ -44,8 +44,6 @@ export const CaseOfConcernForm: React.FC<CaseOfConcernFormProps> = ({
   initialData,
 }) => {
   const { createCase, updateCase } = useCasesOfConcern();
-  const { caseData, isLoading: caseLoading } = useCaseOfConcern(caseId || '');
-  const { users } = useOrganizationUsers();
 
   const [formData, setFormData] = useState<CreateCaseOfConcernInput & { status?: ConcernStatus }>({
     title: '',
@@ -65,25 +63,7 @@ export const CaseOfConcernForm: React.FC<CaseOfConcernFormProps> = ({
 
   const isEditing = !!caseId;
 
-  useEffect(() => {
-    if (isEditing && caseData) {
-      setFormData({
-        title: caseData.title,
-        description: caseData.description || '',
-        concern_type: caseData.concern_type,
-        priority: caseData.priority,
-        status: caseData.status,
-        related_supplier_id: caseData.related_supplier_id,
-        related_location_id: caseData.related_location_id,
-        related_product_code: caseData.related_product_code,
-        related_invoice_number: caseData.related_invoice_number,
-        target_resolution_date: caseData.target_resolution_date || '',
-        assigned_to: caseData.assigned_to || '',
-        tags: caseData.tags,
-        metadata: caseData.metadata,
-      });
-    }
-  }, [isEditing, caseData]);
+  // Removed caseData loading - not available in simplified hook
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -158,16 +138,7 @@ export const CaseOfConcernForm: React.FC<CaseOfConcernFormProps> = ({
     }
   };
 
-  if (isEditing && caseLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading case details...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removed caseLoading check - not available in simplified hook
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -305,11 +276,7 @@ export const CaseOfConcernForm: React.FC<CaseOfConcernFormProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
                   <option value="">Unassigned</option>
-                  {users.map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </option>
-                  ))}
+                  {/* User assignment removed - no user data available */}
                 </select>
               </div>
 

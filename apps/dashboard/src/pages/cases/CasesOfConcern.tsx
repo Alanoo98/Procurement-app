@@ -11,10 +11,9 @@ import {
   CheckCircle,
   RotateCcw
 } from 'lucide-react';
-import { useSimpleCasesOfConcern } from '@/hooks/data/useSimpleCasesOfConcern';
-import { useOrganizationUsers } from '@/hooks/data/useCasesOfConcern';
+import { useCasesOfConcern } from '@/hooks/data/useCasesOfConcern';
 import { formatDate } from '@/utils/format';
-import { ConcernType, CreateCaseOfConcernInput, UpdateCaseOfConcernInput } from '../types';
+import { ConcernType, CreateCaseOfConcernInput, UpdateCaseOfConcernInput } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { MentionSuggestions } from '@/components/features/cases/MentionSuggestions';
 import { MentionRenderer } from '@/components/features/cases/MentionRenderer';
@@ -33,9 +32,8 @@ const concernTypeConfig: Record<ConcernType, { label: string; color: string; bgC
 };
 
 export const CasesOfConcern: React.FC = () => {
-  const { cases, isLoading, error, createCase, updateCase, deleteCase, addComment, deleteComment } = useSimpleCasesOfConcern();
+  const { cases, isLoading, error, createCase, updateCase, deleteCase, addComment, deleteComment } = useCasesOfConcern(undefined, { simple: true });
   const { user } = useAuth();
-  const { users: orgUsers } = useOrganizationUsers();
   const [editingCase, setEditingCase] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<string | null>(null);
   const [showResolved, setShowResolved] = useState(false);
@@ -82,35 +80,51 @@ export const CasesOfConcern: React.FC = () => {
     parseMentions
   } = useMentions();
 
-  // Participants list: include all organization users, even if they haven't contributed
+  // Participants list derived from case creators and commenters
   const participants = useMemo(() => {
-    const counts = new Map<string, number>();
-    // Tally creators and commenters
-    for (const c of cases) {
-      const creatorId = (c as { created_by?: string }).created_by;
-      if (creatorId) counts.set(creatorId, (counts.get(creatorId) || 0) + 1);
-      if (c.comments) {
-        for (const cm of c.comments) {
-          if (cm.user_id) counts.set(cm.user_id, (counts.get(cm.user_id) || 0) + 1);
+    const participantIdToInfo = new Map<string, { id: string; name: string; count: number }>();
+
+    for (const caseItem of cases) {
+      const creatorId = (caseItem as { created_by?: string }).created_by;
+      const creatorName = (caseItem as { users?: { full_name?: string } }).users?.full_name;
+
+      if (creatorId) {
+        const existing = participantIdToInfo.get(creatorId);
+        participantIdToInfo.set(creatorId, {
+          id: creatorId,
+          name: creatorName || existing?.name || 'Unknown',
+          count: (existing?.count || 0) + 1,
+        });
+      }
+
+      if ((caseItem as { case_comments?: Array<{ user_id?: string; users?: { full_name?: string } }> }).case_comments) {
+        for (const comment of (caseItem as { case_comments: Array<{ user_id?: string; users?: { full_name?: string } }> }).case_comments) {
+          const commentUserId = comment.user_id;
+          if (!commentUserId) continue;
+          const existing = participantIdToInfo.get(commentUserId);
+          participantIdToInfo.set(commentUserId, {
+            id: commentUserId,
+            name: comment.users?.full_name || existing?.name || 'Unknown',
+            count: (existing?.count || 0) + 1,
+          });
         }
       }
     }
-    // Build participant list from org users; default count 0
-    const everyone = (orgUsers || []).map(u => ({
-      id: u.id,
-      name: u.name || 'Unknown',
-      count: counts.get(u.id) || 0,
-    }));
-    // Sort by activity desc, then name
+
+    const everyone = Array.from(participantIdToInfo.values());
     return everyone.sort((a, b) => (b.count - a.count) || a.name.localeCompare(b.name));
-  }, [cases, orgUsers]);
+  }, [cases]);
 
   const [activeParticipant, setActiveParticipant] = useState<string | null>(null);
 
   const filteredCases = useMemo(() => {
     let list = cases;
     if (activeParticipant) {
-      list = list.filter(c => (c as { created_by?: string }).created_by === activeParticipant || (c.comments || []).some(cm => cm.user_id === activeParticipant));
+      list = list.filter(c => {
+        if ((c as { created_by?: string }).created_by === activeParticipant) return true;
+        const comments = (c as { case_comments?: Array<{ user_id?: string }> }).case_comments || [];
+        return comments.some((cm: { user_id?: string }) => cm.user_id === activeParticipant);
+      });
     }
     // Exclusive toggle: show only open when off, only resolved when on
     list = list.filter(c => (showResolved ? c.status === 'resolved' : c.status === 'open'));
@@ -119,7 +133,8 @@ export const CasesOfConcern: React.FC = () => {
       list = list.filter(c => {
         const inTitle = (c.title || '').toLowerCase().includes(q);
         const inDesc = (c.description || '').toLowerCase().includes(q);
-        const inComments = (c.comments || []).some(cm => (cm.comment || '').toLowerCase().includes(q));
+        const comments = (c as { case_comments?: Array<{ comment?: string }> }).case_comments || [];
+        const inComments = comments.some((cm: { comment?: string }) => (cm.comment || '').toLowerCase().includes(q));
         return inTitle || inDesc || inComments;
       });
     }
@@ -380,7 +395,7 @@ export const CasesOfConcern: React.FC = () => {
                     const isEditing = editingCase === caseItem.id;
                     const isShowing = showComments === caseItem.id;
 
-                    const initials = ((caseItem as { creator_name?: string }).creator_name || 'U')
+                    const initials = (((caseItem as { users?: { full_name?: string } }).users?.full_name) || 'U')
                       .split(/\s|\./)
                       .filter(Boolean)
                       .slice(0, 2)
@@ -415,7 +430,7 @@ export const CasesOfConcern: React.FC = () => {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                  <span className="font-medium">{(caseItem as { creator_name?: string }).creator_name || 'Unknown User'}</span>
+                                  <span className="font-medium">{((caseItem as { users?: { full_name?: string } }).users?.full_name) || 'Unknown User'}</span>
                                   <span>•</span>
                                   <span>{formatDate(caseItem.created_at)}</span>
                                 </div>
@@ -536,14 +551,14 @@ export const CasesOfConcern: React.FC = () => {
                             <button
                               onClick={() => setShowComments(isShowing ? null : caseItem.id)}
                               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                caseItem.comments_count && caseItem.comments_count > 0
+                                (((caseItem as { case_comments?: unknown[] }).case_comments?.length || 0) > 0)
                                   ? 'text-blue-600 bg-blue-50 hover:bg-blue-100'
                                   : 'text-gray-500 hover:bg-gray-50'
                               }`}
                             >
                               <MessageSquare className="h-4 w-4" />
-                              {caseItem.comments_count && caseItem.comments_count > 0 
-                                ? `${caseItem.comments_count} comment${caseItem.comments_count !== 1 ? 's' : ''}`
+                              {((caseItem as { case_comments?: unknown[] }).case_comments?.length || 0) > 0
+                                ? `${(caseItem as { case_comments?: unknown[] }).case_comments!.length} comment${((caseItem as { case_comments?: unknown[] }).case_comments!.length) !== 1 ? 's' : ''}`
                                 : 'Comment'
                               }
                             </button>
@@ -565,17 +580,17 @@ export const CasesOfConcern: React.FC = () => {
                           <div className="border-t border-gray-100 bg-gray-50">
                             <div className="p-4 space-y-4">
                               {/* Existing Comments */}
-                              {caseItem.comments && caseItem.comments.length > 0 && (
+                              {(caseItem as { case_comments?: Array<{ id: string; comment: string; created_at: string; user_id: string; users?: { full_name?: string } }> }).case_comments && (caseItem as { case_comments?: Array<{ id: string; comment: string; created_at: string; user_id: string; users?: { full_name?: string } }> }).case_comments!.length > 0 && (
                                 <div className="space-y-3">
-                                  {caseItem.comments.map((comment) => (
+                                  {(caseItem as { case_comments: Array<{ id: string; comment: string; created_at: string; user_id: string; users?: { full_name?: string } }> }).case_comments.map((comment) => (
                                     <div key={comment.id} className="bg-white rounded-lg p-3 border border-gray-200">
                                       <div className="flex items-start gap-3">
                                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-medium text-gray-600 flex-shrink-0">
-                                          {comment.user_name?.charAt(0) || 'U'}
+                                          {(comment.users?.full_name || 'U').charAt(0)}
                                         </div>
                                         <div className="flex-1">
                                           <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-medium text-gray-900">{comment.user_name}</span>
+                                            <span className="text-sm font-medium text-gray-900">{comment.users?.full_name || 'Unknown'}</span>
                                             <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
                                           </div>
                                           <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -681,5 +696,6 @@ export const CasesOfConcern: React.FC = () => {
     </div>
   );
 };
+
 
 

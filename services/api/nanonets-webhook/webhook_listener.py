@@ -20,6 +20,13 @@ async def root():
 @app.get("/healthz")
 async def health_check():
     """Health check endpoint for Render monitoring"""
+    # Simple health check - just return OK without database query
+    # This prevents excessive database load from frequent health checks
+    return {"status": "healthy"}
+
+@app.get("/healthz/detailed")
+async def detailed_health_check():
+    """Detailed health check with database connectivity test"""
     try:
         # Test database connection
         cur.execute("SELECT 1")

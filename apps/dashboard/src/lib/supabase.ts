@@ -15,7 +15,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'procurement-dashboard'
+      'X-Client-Info': 'procurement-dashboard',
+      'Prefer': 'count=none' // Disable expensive count queries by default
     },
   },
 });

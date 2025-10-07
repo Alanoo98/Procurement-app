@@ -164,6 +164,19 @@ export const StockSidebar: React.FC<StockSidebarProps> = ({ onSwitchToProcuremen
                   {!isCollapsed && <span>{item.name}</span>}
                 </NavLink>
               ))}
+              {!isCollapsed ? (
+                <div className="mt-2">
+                  <span className="inline-block rounded-full bg-gray-700/60 px-2 py-0.5 text-xs text-gray-300">
+                    Beta v1.0
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-2 flex justify-center">
+                  <span className="inline-block rounded-full bg-gray-700/60 px-2 py-0.5 text-xs text-gray-300" title="Beta v1.0">
+                    β
+                  </span>
+                </div>
+              )}
               <div className="mt-2">
                 <UserMenu />
               </div>

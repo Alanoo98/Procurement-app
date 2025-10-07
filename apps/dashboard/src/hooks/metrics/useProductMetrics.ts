@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { getPriceValue } from '@/utils/getPriceValue';
+import { cache } from '@/lib/cache';
 
 type ProductMetric = {
   id: string;
@@ -69,11 +70,50 @@ export const useProductMetrics = () => {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    const fetchProductMetrics = async () => {
-      if (!currentOrganization) return;
-      
-      setLoading(true);
+  // Create cache key based on all filter parameters
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    
+    const filterHash = JSON.stringify({
+      orgId: currentOrganization.id,
+      buId: currentBusinessUnit?.id,
+      dateRange,
+      restaurants: restaurants.sort(),
+      suppliers: suppliers.sort(),
+      categories: categories.sort(),
+      documentType,
+      productSearch,
+      productCodeFilter,
+    });
+    
+    return `product-metrics:${btoa(filterHash)}`;
+  }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<ProductMetric[]>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: ProductMetric[]) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes
+  }, [cacheKey]);
+
+  const fetchProductMetrics = useCallback(async () => {
+    if (!currentOrganization) return;
+    
+    // Check cache first - this will dramatically improve performance
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setData(cachedData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    
+    setLoading(true);
       
       // If we have product search terms, show a toast to indicate filtering is in progress
       if (productSearch?.terms?.length > 0) {
@@ -540,16 +580,18 @@ export const useProductMetrics = () => {
         console.log(`Products with agreements: ${productsWithAgreements.length}`);
         
         setData(filteredProducts);
+        setCachedData(filteredProducts); // Cache the result for next time
       } catch (err) {
         console.error('Error fetching product metrics:', err);
         setError(err as Error);
       } finally {
         setLoading(false);
       }
-    };
+    }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, getCachedData, setCachedData]);
 
+  useEffect(() => {
     fetchProductMetrics();
-  }, [dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, currentOrganization, currentBusinessUnit]);
+  }, [fetchProductMetrics]);
 
   return { data, isLoading, error };
 };

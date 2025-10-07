@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProductTargets } from '@/hooks/management';
 import { supabase } from '@/lib/supabase';
+import { useProductsLookup } from '@/hooks/data/useProductsLookup';
 import { ExternalLink } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useProductMetrics } from '@/hooks/metrics';
-import { useSupplierMetricsAnalysis } from '@/hooks/metrics';
+import { useSuppliers } from '@/hooks/metrics';
 import { formatCurrency } from '@/utils/format';
 
 // Utility functions for number formatting
@@ -66,8 +67,7 @@ export const ProductTargets: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState('');
-  const [productsData, setProductsData] = useState<Array<{ product_code: string; description: string; supplier_id: string }>>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Array<{ product_code: string; description: string; supplier_id: string }>>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Array<{ product_code: string | null; description: string | null; supplier_id: string | null }>>([]);
   const [showProductInfo, setShowProductInfo] = useState(false);
   const { currentOrganization } = useOrganization();
   const [businessUnitId, setBusinessUnitId] = useState('');
@@ -77,7 +77,7 @@ export const ProductTargets: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { data: productMetrics } = useProductMetrics();
-  const { data: supplierMetrics } = useSupplierMetricsAnalysis();
+  const { data: supplierMetrics } = useSuppliers();
   const [editTarget, setEditTarget] = useState<any>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [productNames, setProductNames] = useState<Record<string, string>>({});
@@ -100,47 +100,37 @@ export const ProductTargets: React.FC = () => {
     }
   }
 
-  // Fetch products and suppliers for the dropdowns
+  // Products lookup via RPC + cursor; no hard limit of 1000
+  const productsLookup = useProductsLookup({
+    organizationId: currentOrganization?.id || '',
+    supplierId: form.supplier_id || undefined,
+    search: productSearch || null,
+    pageSize: 50
+  });
+
   useEffect(() => {
-    if (!showModal && !editTarget) return;
-    (async () => {
-      // Fetch unique products from invoice_lines (including those without product codes)
-      const { data: prodData } = await supabase
-        .from('invoice_lines')
-        .select('product_code, description, supplier_id');
-      setProductsData(prodData || []);
-      // Deduplicate products (handle null product codes)
-      const uniqueProducts = Array.from(
-        new Map((prodData || []).map(p => [p.product_code || `no-code-${p.description}-${p.supplier_id}`, p])).values()
-      ).sort((a, b) => (a.description || '').localeCompare(b.description || ''));
-      setProducts(uniqueProducts);
-      setFilteredProducts(uniqueProducts);
-      // Fetch suppliers
-      const { data: supData } = await supabase
-        .from('suppliers')
-        .select('supplier_id, name');
-      setSuppliers((supData || []).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-    })();
-  }, [showModal, editTarget]);
+    if ((showModal || !!editTarget) && productsLookup.items.length === 0 && !productsLookup.loading) {
+      productsLookup.loadMore();
+    }
+  }, [showModal, editTarget, productsLookup.items.length, productsLookup.loading]);
+
+  useEffect(() => {
+    setProducts(productsLookup.items as any);
+    setFilteredProducts(productsLookup.items as any);
+  }, [productsLookup.items]);
 
   // Filter products by supplier and search
   useEffect(() => {
     let filtered = products;
-    if (form.supplier_id) {
-      const supplierProductCodes = productsData
-        .filter(item => item.supplier_id === form.supplier_id)
-        .map(item => item.product_code);
-      filtered = products.filter(product => supplierProductCodes.includes(product.product_code));
+    if (productSearch.trim() && !productsLookup.loading) {
+      // Reset and fetch from start when search changes
+      productsLookup.reset();
+      productsLookup.loadMore();
     }
-    if (productSearch.trim()) {
-      const search = productSearch.trim().toLowerCase();
-      filtered = filtered.filter(p =>
-        (p.description || '').toLowerCase().includes(search) ||
-        (p.product_code ? p.product_code.toLowerCase().includes(search) : false)
-      );
-    }
+    // When supplier filter changes, reset lookup as well
+    // Note: handled through dependency of supplierId in hook params
     setFilteredProducts(filtered);
-  }, [form.supplier_id, productSearch, products, productsData]);
+  }, [productSearch, products, productsLookup.loading]);
 
   // Refresh product targets after adding
   // const { data: targets, isLoading: loadingTargets, error: errorTargets } = useProductTargets(); // This line is now redundant
@@ -240,13 +230,14 @@ export const ProductTargets: React.FC = () => {
     supabase
       .from('invoice_lines')
       .select('product_code, description')
+      .eq('organization_id', currentOrganization?.id ?? '')
       .in('product_code', uniqueProductCodes)
       .then(({ data }) => {
         const map: Record<string, string> = {};
         (data || []).forEach(row => { map[row.product_code] = row.description; });
         setProductNames(map);
       });
-  }, [targets]);
+  }, [targets, currentOrganization?.id]);
 
   // Fetch supplier names for all unique supplier_ids in targets
   useEffect(() => {
@@ -256,13 +247,14 @@ export const ProductTargets: React.FC = () => {
     supabase
       .from('suppliers')
       .select('supplier_id, name')
+      .eq('organization_id', currentOrganization?.id ?? '')
       .in('supplier_id', uniqueSupplierIds)
       .then(({ data }) => {
         const map: Record<string, string> = {};
         (data || []).forEach(row => { map[row.supplier_id] = row.name; });
         setSupplierNames(map);
       });
-  }, [targets]);
+  }, [targets, currentOrganization?.id]);
 
   // Fetch location (business unit) names for all unique business_unit_ids in targets
   useEffect(() => {
@@ -285,6 +277,7 @@ export const ProductTargets: React.FC = () => {
     supabase
       .from('locations')
       .select('location_id, name')
+      .eq('organization_id', currentOrganization?.id ?? '')
       .then(({ data }) => {
         const sorted = (data || []).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setLocations(sorted);
@@ -292,7 +285,7 @@ export const ProductTargets: React.FC = () => {
         sorted.forEach(row => { map[row.location_id] = row.name; });
         setLocationNames(map);
       });
-  }, []);
+  }, [currentOrganization?.id]);
 
   // Initialize edit form when editTarget is set
   useEffect(() => {

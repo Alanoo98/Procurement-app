@@ -1,0 +1,87 @@
+name: Booking Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      organization_id:
+        description: Organization ID to sync PAX for
+        required: true
+        type: string
+      location_id:
+        description: Optional place/location ID
+        required: false
+        type: string
+      start_date:
+        description: Start date (YYYY-MM-DD) optional
+        required: false
+        type: string
+      end_date:
+        description: End date (YYYY-MM-DD) optional
+        required: false
+        type: string
+      business_type:
+        description: Business type (default restaurant)
+        required: false
+        type: string
+
+jobs:
+  run-booking-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # Azure SQL source
+      SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
+      SOURCE_DB_DATABASE: ${{ secrets.SOURCE_DB_DATABASE }}
+      SOURCE_DB_USER: ${{ secrets.SOURCE_DB_USER }}
+      SOURCE_DB_PASSWORD: ${{ secrets.SOURCE_DB_PASSWORD }}
+      # Supabase target
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Parameters
+      ORGANIZATION_ID: ${{ inputs.organization_id }}
+      LOCATION_ID: ${{ inputs.location_id }}
+      START_DATE: ${{ inputs.start_date }}
+      END_DATE: ${{ inputs.end_date }}
+      BUSINESS_TYPE: ${{ inputs.business_type }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies (ODBC)
+        run: |
+          sudo su -c 'curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -'
+          sudo su -c 'curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list > /etc/apt/sources.list.d/mssql-release.list'
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('services/api/booking_integration_service/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies
+        working-directory: services/api/booking_integration_service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run booking sync
+        working-directory: services/api/booking_integration_service
+        run: |
+          python booking_sync_github.py
+
+      - name: Summary
+        run: |
+          echo "Booking sync completed for organization_id=${{ inputs.organization_id }}" >> $GITHUB_STEP_SUMMARY
+
+

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { cache } from '@/lib/cache';
 
 export interface ProductDisplay {
   product_id: string;
@@ -19,6 +20,24 @@ export const useAllProducts = () => {
   const [error, setError] = useState<Error | null>(null);
   const { currentOrganization } = useOrganization();
 
+  // Create cache key
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    return `products:${currentOrganization.id}`;
+  }, [currentOrganization]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<ProductDisplay[]>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: ProductDisplay[]) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 15 * 60 * 1000); // 15 minutes cache
+  }, [cacheKey]);
+
   const fetchData = async () => {
     if (!currentOrganization) {
       setData([]);
@@ -26,13 +45,24 @@ export const useAllProducts = () => {
       return;
     }
 
+    // Check cache first
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setData(cachedData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-             // TODO: Update to work with new category system
+      // TODO: Update to work with new category system
       // For now, return empty data since we're using categories instead of individual products
-      setData([]);
+      const products: ProductDisplay[] = [];
+      setData(products);
+      setCachedData(products); // Cache the result
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch products'));
       setData([]);
@@ -43,7 +73,7 @@ export const useAllProducts = () => {
 
   useEffect(() => {
     fetchData();
-  }, [currentOrganization]);
+  }, [currentOrganization, getCachedData, setCachedData]);
 
   return {
     data,

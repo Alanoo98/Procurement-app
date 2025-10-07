@@ -578,16 +578,29 @@ def transform_row_optimized(row, mappings, product_matcher=None, cur=None):
         
         if invoice_lines_count > 0:
             print(f"   ✅ Verified {invoice_lines_count} invoice_lines inserted for extracted_data {ed_id}")
+            print(f"   🔍 Looking for processed_tracker record: document_id={document_id}, location_id={location_id}")
             
             # First, try to find the processed_tracker record that matches the invoice_lines location_id
-            cur.execute("""
-                SELECT status, updated_at, location_id as tracker_location_id
-                FROM processed_tracker 
-                WHERE document_id = %s AND organization_id = %s
-                AND location_id = %s
-                ORDER BY updated_at DESC 
-                LIMIT 1
-            """, (document_id, org_id, location_id))
+            # Handle NULL location_id properly in the SQL query
+            if location_id is None:
+                cur.execute("""
+                    SELECT status, updated_at, location_id as tracker_location_id
+                    FROM processed_tracker 
+                    WHERE document_id = %s AND organization_id = %s
+                    AND location_id IS NULL
+                    ORDER BY updated_at DESC 
+                    LIMIT 1
+                """, (document_id, org_id))
+            else:
+                cur.execute("""
+                    SELECT status, updated_at, location_id as tracker_location_id
+                    FROM processed_tracker 
+                    WHERE document_id = %s AND organization_id = %s
+                    AND location_id = %s
+                    ORDER BY updated_at DESC 
+                    LIMIT 1
+                """, (document_id, org_id, location_id))
+            
             tracker_result = cur.fetchone()
             
             if tracker_result:
@@ -597,14 +610,29 @@ def transform_row_optimized(row, mappings, product_matcher=None, cur=None):
                 # If status is still 'processing' or 'pending', update it to 'processed'
                 if status in ['processing', 'pending']:
                     print(f"   🔄 Updating processed_tracker status to 'processed' (invoice_lines confirmed)")
-                    cur.execute("""
-                        UPDATE processed_tracker 
-                        SET status = 'processed', updated_at = now()
-                        WHERE document_id = %s AND organization_id = %s
-                        AND location_id = %s
-                        AND status IN ('pending', 'processing')
-                    """, (document_id, org_id, location_id))
-                    print(f"   ✅ processed_tracker status updated to 'processed'")
+                    # Handle NULL location_id properly in the UPDATE query
+                    if location_id is None:
+                        print(f"   🔍 Updating processed_tracker with NULL location_id for document_id={document_id}")
+                        cur.execute("""
+                            UPDATE processed_tracker 
+                            SET status = 'processed', updated_at = now()
+                            WHERE document_id = %s AND organization_id = %s
+                            AND location_id IS NULL
+                            AND status IN ('pending', 'processing')
+                        """, (document_id, org_id))
+                    else:
+                        print(f"   🔍 Updating processed_tracker with location_id={location_id} for document_id={document_id}")
+                        cur.execute("""
+                            UPDATE processed_tracker 
+                            SET status = 'processed', updated_at = now()
+                            WHERE document_id = %s AND organization_id = %s
+                            AND location_id = %s
+                            AND status IN ('pending', 'processing')
+                        """, (document_id, org_id, location_id))
+                    
+                    # Check how many records were actually updated
+                    updated_count = cur.rowcount
+                    print(f"   ✅ processed_tracker status updated to 'processed' (affected {updated_count} record(s))")
                 elif status == 'processed':
                     print(f"   ✅ processed_tracker already marked as 'processed'")
                 else:

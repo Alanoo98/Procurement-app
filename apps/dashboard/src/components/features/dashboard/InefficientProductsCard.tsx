@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingDown, AlertTriangle, Target, TrendingUp, Minus } from 'lucide-react';
-import { useDashboardInefficientProducts } from '@/hooks/metrics/useDashboardInefficientProducts';
+import { useInefficientProducts } from '@/hooks/management/useInefficientProducts';
 import { formatCurrency } from '@/utils/format';
 
 interface InefficientProductsCardProps {
@@ -10,7 +10,10 @@ interface InefficientProductsCardProps {
 export const InefficientProductsCard: React.FC<InefficientProductsCardProps> = ({
   onViewProduct,
 }) => {
-  const { inefficientProducts, totalPotentialSavings, isLoading, error } = useDashboardInefficientProducts();
+  const { data: inefficientProducts, isLoading, error } = useInefficientProducts();
+  
+  // Calculate total potential savings
+  const totalPotentialSavings = inefficientProducts?.reduce((total, product) => total + product.potentialSavings, 0) || 0;
 
   const getEfficiencyColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';

@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { cache } from '@/lib/cache';
+import { fetchAllWithCursorPagination } from '@/utils/cursorPagination';
 
 export type PaxRecord = {
   pax_id: string;
@@ -23,9 +25,44 @@ export const usePaxData = () => {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Create cache key based on filters
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    
+    const filterHash = JSON.stringify({
+      orgId: currentOrganization.id,
+      buId: currentBusinessUnit?.id,
+      dateRange,
+      restaurants: restaurants.sort(),
+    });
+    
+    return `pax:${btoa(filterHash)}`;
+  }, [currentOrganization, currentBusinessUnit, dateRange, restaurants]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<PaxRecord[]>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: PaxRecord[]) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes cache
+  }, [cacheKey]);
+
     useEffect(() => {
     const fetchPaxData = async () => {
       if (!currentOrganization) return;
+  
+      // Check cache first
+      const cachedData = getCachedData();
+      if (cachedData) {
+        setData(cachedData);
+        setLoading(false);
+        setError(null);
+        return;
+      }
   
       setLoading(true);
       setError(null);
@@ -72,39 +109,16 @@ export const usePaxData = () => {
           query = query.in('location_id', restaurants);
         }
 
-        // Step 4: Execute query with pagination
-        let allRows: any[] = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-          const offset = page * pageSize;
-          
-          const { data: pageRows, error: pageError } = await query
-            .range(offset, offset + pageSize - 1);
-
-          if (pageError) {
-            throw pageError;
-          }
-
-          if (!pageRows || pageRows.length === 0) {
-            hasMore = false;
-          } else {
-            allRows = allRows.concat(pageRows);
-            
-            // If we got less than pageSize, we've reached the end
-            if (pageRows.length < pageSize) {
-              hasMore = false;
-            }
-            
-            page++;
-          }
-        }
-
-        const paxData = allRows;
+        // Step 4: Execute query with cursor-based pagination (more efficient than OFFSET)
+        const paxData = await fetchAllWithCursorPagination<any>(
+          query,
+          'date_id',
+          'desc',
+          1000
+        );
   
         setData(paxData || []);
+        setCachedData(paxData || []); // Cache the result
       } catch (err) {
         console.error('Error fetching PAX data:', err);
         setError(err as Error);
@@ -114,7 +128,7 @@ export const usePaxData = () => {
     };
   
     fetchPaxData();
-  }, [dateRange, restaurants, currentOrganization, currentBusinessUnit]);
+  }, [dateRange, restaurants, currentOrganization, currentBusinessUnit, getCachedData, setCachedData]);
 
 
   const addPaxRecord = async (record: Omit<PaxRecord, 'pax_id' | 'created_at' | 'updated_at'>) => {
@@ -128,6 +142,12 @@ export const usePaxData = () => {
       if (error) throw error;
       
       setData(prev => [data, ...prev]);
+      
+      // Invalidate cache when data changes
+      if (cacheKey) {
+        cache.delete(cacheKey);
+      }
+      
       return data;
     } catch (err) {
       console.error('Error adding PAX record:', err);
@@ -161,6 +181,11 @@ export const usePaxData = () => {
         record.pax_id === pax_id ? data : record
       ));
       
+      // Invalidate cache when data changes
+      if (cacheKey) {
+        cache.delete(cacheKey);
+      }
+      
       return data;
     } catch (err) {
       console.error('Error updating PAX record:', err);
@@ -178,6 +203,11 @@ export const usePaxData = () => {
       if (error) throw error;
       
       setData(prev => prev.filter(record => record.pax_id !== pax_id));
+      
+      // Invalidate cache when data changes
+      if (cacheKey) {
+        cache.delete(cacheKey);
+      }
     } catch (err) {
       console.error('Error deleting PAX record:', err);
       throw err;
@@ -194,6 +224,12 @@ export const usePaxData = () => {
       if (error) throw error;
       
       setData(prev => [...data, ...prev]);
+      
+      // Invalidate cache when data changes
+      if (cacheKey) {
+        cache.delete(cacheKey);
+      }
+      
       return data;
     } catch (err) {
       console.error('Error importing PAX data:', err);

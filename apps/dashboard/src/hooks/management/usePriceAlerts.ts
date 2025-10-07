@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { toast } from 'sonner';
 import { getPriceValue } from '@/utils/getPriceValue';
 import { detectPriceVariations } from '@/utils/priceVariationDetection';
+import { cache } from '@/lib/cache';
 
 // Database row types used for stronger typing
 interface DbPriceAlert {
@@ -149,12 +150,61 @@ export const usePriceAlerts = () => {
     total: 0,
   });
 
-  useEffect(() => {
-    const fetchPriceAlerts = async () => {
-      if (!currentOrganization) return;
-      
-      setLoading(true);
+  // Create cache key based on all filter parameters
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    
+    const filterHash = JSON.stringify({
+      orgId: currentOrganization.id,
+      buId: currentBusinessUnit?.id,
+      dateRange,
+      restaurants: restaurants.sort(),
+      suppliers: suppliers.sort(),
+      categories: categories.sort(),
+      documentType,
+      productSearch,
+      productCodeFilter,
+    });
+    
+    return `price-alerts:${btoa(filterHash)}`;
+  }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<{
+      priceVariations: PriceVariation[];
+      agreementViolations: AgreementViolation[];
+      totalSavings: { variations: number; agreements: number; total: number };
+    }>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: {
+    priceVariations: PriceVariation[];
+    agreementViolations: AgreementViolation[];
+    totalSavings: { variations: number; agreements: number; total: number };
+  }) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 5 * 60 * 1000); // 5 minutes
+  }, [cacheKey]);
+
+  const fetchPriceAlerts = useCallback(async () => {
+    if (!currentOrganization) return;
+    
+    // Check cache first - this will dramatically improve performance
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setPriceVariations(cachedData.priceVariations);
+      setAgreementViolations(cachedData.agreementViolations);
+      setTotalSavings(cachedData.totalSavings);
+      setLoading(false);
       setError(null);
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
       
       // Silent filtering - no toast needed for search operations
 
@@ -883,16 +933,28 @@ export const usePriceAlerts = () => {
           total: variationSavings + agreementSavings,
         });
 
+        // Cache the result for next time
+        setCachedData({
+          priceVariations: sortedVariations,
+          agreementViolations: sortedViolations,
+          totalSavings: {
+            variations: variationSavings,
+            agreements: agreementSavings,
+            total: variationSavings + agreementSavings,
+          },
+        });
+
       } catch (err) {
         console.error('Error fetching price alerts:', err);
         setError(err as Error);
       } finally {
         setLoading(false);
       }
-    };
+    }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, priceVariationSettings, getCachedData, setCachedData]);
 
+  useEffect(() => {
     fetchPriceAlerts();
-  }, [dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, currentOrganization, currentBusinessUnit, priceVariationSettings]);
+  }, [fetchPriceAlerts]);
 
   const resolveAlert = async (alertId: string, reason: string, note: string) => {
     try {

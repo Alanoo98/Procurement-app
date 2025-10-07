@@ -74,99 +74,76 @@ interface DocumentData {
         if (!currentOrganization) return [];
 
         try {
-          // Build the base query
-          let query = supabase
-            .from("invoice_lines")
-            .select(`
-              id,
-              invoice_number,
-              invoice_date,
-              due_date,
-              delivery_date,
-              document_type,
-              supplier_id,
-              location_id,
-              quantity,
-              unit_price,
-              unit_price_after_discount,
-              total_price,
-              total_price_after_discount,
-              total_tax,
-              extracted_data_id,
-              product_code,
-              description,
-              suppliers(name, address),
-              locations!left(name, address)
-            `)
-            .eq('organization_id', currentOrganization.id);
-            
-          // Apply business unit filter if selected
-          if (currentBusinessUnit && currentBusinessUnit.id) {
-            query = query.eq('business_unit_id', currentBusinessUnit.id);
-          }
-
-          // Apply global filters
-          if (dateRange?.start && dateRange?.end) {
-            query = query
-              .gte('invoice_date', dateRange.start)
-              .lte('invoice_date', dateRange.end);
-          }
-
-          if (restaurants.length > 0) {
-            query = query.in('location_id', restaurants);
-          } else {
-            // When no locations are selected, only show mapped locations (not null)
-            query = query.not('location_id', 'is', null);
-          }
-
-          if (suppliers.length > 0) {
-            query = query.in('supplier_id', suppliers);
-          }
-
-          if (categories.length > 0) {
-            query = query.in('category_id', categories);
-          }
-
-          if (documentType === 'Faktura') {
-            query = query.in('document_type', ['Faktura', 'Invoice']);
-          } else if (documentType === 'Kreditnota') {
-            query = query.in('document_type', ['Kreditnota', 'Credit note']);
-          }
-
-          // Apply product code filter
-          if (productCodeFilter === 'with_codes') {
-            query = query.not('product_code', 'is', null).neq('product_code', '');
-          } else if (productCodeFilter === 'without_codes') {
-            query = query.or('product_code.is.null,product_code.eq.');
-          }
-
-                  // Fetch all data using pagination (Supabase has a hard limit of 1000 rows per query)
-        let allRows: RawInvoiceLine[] = [];
-          let page = 0;
-          const pageSize = 1000;
+          // Cursor-based fetch via RPC (no OFFSET); post-filter doc type and product code
+          let allRows: RawInvoiceLine[] = [];
           let hasMore = true;
+          const pageSize = 1000;
+          let afterInvoiceDate: string | null = null;
+          let afterCreatedAt: string | null = null;
+          let afterId: string | null = null;
 
           while (hasMore) {
-            const offset = page * pageSize;
-            
-            const { data: pageRows, error: pageError } = await query
-              .range(offset, offset + pageSize - 1) as { data: RawInvoiceLine[] | null; error: Error | null };
+            const { data, error } = await supabase.rpc<any>('invoice_lines_list', {
+              p_org: currentOrganization.id,
+              p_start_date: dateRange?.start ?? null,
+              p_end_date: dateRange?.end ?? null,
+              p_location_ids: restaurants.length > 0 ? restaurants : null,
+              p_supplier_ids: suppliers.length > 0 ? suppliers : null,
+              p_category_ids: categories.length > 0 ? categories : null,
+              p_search: null,
+              p_limit: pageSize,
+              p_after_invoice_date: afterInvoiceDate,
+              p_after_created_at: afterCreatedAt,
+              p_after_id: afterId
+            });
+            if (error) throw error;
+            const pageRows = (data || []) as Array<any>;
 
-            if (pageError) {
-              throw pageError;
-            }
+            // Document type filter (client-side, minimal cost on small page)
+            const docFiltered = pageRows.filter(r => {
+              if (documentType === 'Faktura') return ['Faktura', 'Invoice'].includes(r.document_type);
+              if (documentType === 'Kreditnota') return ['Kreditnota', 'Credit note'].includes(r.document_type);
+              return true;
+            });
 
-            if (!pageRows || pageRows.length === 0) {
+            // Product code filter (client-side)
+            const codeFiltered = docFiltered.filter(r => {
+              if (productCodeFilter === 'with_codes') return r.product_code && r.product_code !== '';
+              if (productCodeFilter === 'without_codes') return !r.product_code || r.product_code === '';
+              return true;
+            });
+
+            const mapped: RawInvoiceLine[] = codeFiltered.map(r => ({
+              id: r.id,
+              invoice_number: r.invoice_number,
+              invoice_date: r.invoice_date,
+              due_date: r.due_date,
+              delivery_date: r.delivery_date,
+              document_type: r.document_type,
+              supplier_id: r.supplier_id,
+              location_id: r.location_id,
+              quantity: Number(r.quantity || 0),
+              unit_price: Number(r.unit_price || 0),
+              unit_price_after_discount: Number(r.unit_price_after_discount || 0),
+              total_price: Number(r.total_price || 0),
+              total_price_after_discount: Number(r.total_price_after_discount || 0),
+              total_tax: Number(r.total_tax || 0),
+              extracted_data_id: r.extracted_data_id,
+              product_code: r.product_code || undefined,
+              description: r.description || undefined,
+              suppliers: r.supplier_name ? { name: r.supplier_name } : undefined,
+              locations: r.location_name ? { name: r.location_name } : undefined
+            }));
+
+            allRows = allRows.concat(mapped);
+
+            if (!pageRows.length || pageRows.length < pageSize) {
               hasMore = false;
             } else {
-              allRows = allRows.concat(pageRows);
-              
-              // If we got less than pageSize, we've reached the end
-              if (pageRows.length < pageSize) {
-                hasMore = false;
-              }
-              
-              page++;
+              const last = pageRows[pageRows.length - 1];
+              afterInvoiceDate = last.cursor?.invoice_date ?? null;
+              afterCreatedAt = last.cursor?.created_at ?? null;
+              afterId = last.cursor?.id ?? null;
             }
           }
 

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { QUERY_KEYS, CACHE_TIMES, STALE_TIMES, createQueryKey } from '@/hooks/utils/queryConfig';
+import { fetchAllWithCursorPagination } from '@/utils/cursorPagination';
 
 export interface LocationMetric {
   location_id: string;
@@ -113,39 +114,13 @@ export const useLocationMetrics = () => {
           productCodeFilter
         });
 
-        // Fetch all data using pagination (Supabase has a hard limit of 1000 rows per query)
-        let allRows: any[] = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-          const offset = page * pageSize;
-          
-          const { data: pageRows, error: pageError } = await query
-            .range(offset, offset + pageSize - 1);
-
-          if (pageError) {
-            setError(pageError);
-            setIsLoading(false);
-            return;
-          }
-
-          if (!pageRows || pageRows.length === 0) {
-            hasMore = false;
-          } else {
-            allRows = allRows.concat(pageRows);
-            
-            // If we got less than pageSize, we've reached the end
-            if (pageRows.length < pageSize) {
-              hasMore = false;
-            }
-            
-            page++;
-          }
-        }
-
-        const rows = allRows;
+        // Fetch all data using cursor-based pagination (more efficient than OFFSET)
+        const rows = await fetchAllWithCursorPagination<any>(
+          query,
+          'invoice_date',
+          'asc',
+          1000
+        );
 
         // Group by location on the client side (much simpler than before)
         const grouped: Record<string, LocationMetric> = {};

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ResizableTable } from '@/components/shared/ui/ResizableTable';
 import { usePagination } from '@/hooks/ui/usePagination';
 import { Pagination } from '@/components/shared/ui/Pagination';
-import { useSupplierMetrics } from '@/hooks/metrics/useSuppliers';
+import { useSuppliers } from '@/hooks/metrics/useSuppliers';
 import { useTableColumns } from '@/hooks/ui/useTableColumns';
 import { formatCurrency } from '@/utils/format';
 import { TableEmptyState, TableLoadingState, TableErrorState } from '@/components/shared/ui/EmptyStates';
@@ -19,7 +19,7 @@ import {
 } from "recharts";
 
 export const Suppliers: React.FC = () => {
-  const { data, isLoading, error } = useSupplierMetrics();
+  const { data, isLoading, error } = useSuppliers();
   const [localData, setLocalData] = useState<typeof data>([]);
 
   // Update local data when data changes

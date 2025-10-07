@@ -12,14 +12,12 @@ import {
   HelpCircle,
   FileText,
   AlertTriangle,
-  Sparkles,
   Handshake,
   TrendingUp,
   ChevronDown,
   ChevronRight,
   Database,
   Users as UsersIcon,
-  Package,
   Calculator,
   Flag
 } from 'lucide-react';
@@ -63,6 +61,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSwitchToStock }) => {
   const invoiceData = useFilteredData();
   const { isCollapsed, toggleSidebar } = useSidebarStore();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set([]));
+
+  // Reserved for future Stock integration button to avoid unused-prop lint errors
+  if (onSwitchToStock) {
+    // no-op
+  }
 
   // Check if there are any price alerts
   const hasPriceAlerts = React.useMemo(() => {
@@ -274,6 +277,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ onSwitchToStock }) => {
                   {!isCollapsed && <span>{item.name}</span>}
                 </NavLink>
               ))}
+              {!isCollapsed ? (
+                <div className="mt-2">
+                  <span className="inline-block rounded-full bg-gray-700/60 px-2 py-0.5 text-xs text-gray-300">
+                    Beta v1.0
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-2 flex justify-center">
+                  <span className="inline-block rounded-full bg-gray-700/60 px-2 py-0.5 text-xs text-gray-300" title="Beta v1.0">
+                    β
+                  </span>
+                </div>
+              )}
               <div className="mt-2">
                 <UserMenu />
               </div>

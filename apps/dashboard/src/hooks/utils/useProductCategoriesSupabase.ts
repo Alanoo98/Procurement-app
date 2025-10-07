@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { cache } from '@/lib/cache';
 
 export interface ProductCategory {
   category_id: string;
@@ -43,9 +44,37 @@ export const useProductCategoriesSupabase = () => {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Create cache key
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    return `product-categories:${currentOrganization.id}`;
+  }, [currentOrganization]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<ProductCategory[]>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: ProductCategory[]) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 15 * 60 * 1000); // 15 minutes
+  }, [cacheKey]);
+
   // Fetch all categories for the current organization
   const fetchCategories = useCallback(async () => {
     if (!currentOrganization) return;
+    
+    // Check cache first
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setCategories(cachedData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -57,13 +86,14 @@ export const useProductCategoriesSupabase = () => {
       
       if (error) throw error;
       setCategories(data || []);
+      setCachedData(data || []); // Cache the result
     } catch (err) {
       setError(err as Error);
       setCategories([]);
     } finally {
       setLoading(false);
     }
-  }, [currentOrganization]);
+  }, [currentOrganization, getCachedData, setCachedData]);
 
   // Fetch all category mappings for the current organization
   const fetchMappings = useCallback(async () => {
@@ -130,16 +160,9 @@ export const useProductCategoriesSupabase = () => {
       .single();
     
     if (error) throw error;
-    // Optimistic update to avoid full fetch round-trip
-    setCategories((prev: ProductCategory[]) => {
-      const next = [...prev];
-      if (data) {
-        next.push(data as ProductCategory);
-        // Keep same ordering as UI expects
-        next.sort((a, b) => (a.category_name || '').localeCompare(b.category_name || ''));
-      }
-      return next;
-    });
+    // Clear cache and refetch
+    cache.delete(cacheKey);
+    await fetchCategories();
     return data;
   };
 
@@ -151,6 +174,8 @@ export const useProductCategoriesSupabase = () => {
       .eq('category_id', categoryId);
     
     if (error) throw error;
+    // Clear cache and refetch
+    cache.delete(cacheKey);
     await fetchCategories();
   };
 
@@ -162,6 +187,8 @@ export const useProductCategoriesSupabase = () => {
       .eq('category_id', categoryId);
     
     if (error) throw error;
+    // Clear cache and refetch
+    cache.delete(cacheKey);
     await fetchCategories();
   };
 

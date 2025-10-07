@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { getPriceValue } from '@/utils/getPriceValue';
+import { cache } from '@/lib/cache';
+import { fetchAllWithCursorPagination } from '@/utils/cursorPagination';
 
 type EfficiencyMetric = {
   locationId: string;
@@ -75,11 +77,69 @@ export const useEfficiencyData = () => {
   const [isLoading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Create cache key based on all filter parameters
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    
+    const filterHash = JSON.stringify({
+      orgId: currentOrganization.id,
+      buId: currentBusinessUnit?.id,
+      dateRange,
+      restaurants: restaurants.sort(),
+      suppliers: suppliers.sort(),
+      categories: categories.sort(),
+      documentType,
+      productSearch,
+      productCodeFilter,
+    });
+    
+    return `efficiency:${btoa(filterHash)}`;
+  }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    return cache.get<{
+      efficiencyMetrics: EfficiencyMetric[];
+      pivotData: PivotData;
+      overallMetrics: Record<string, unknown>;
+      paxData: Array<{ restaurant: string; pax: number }>;
+    }>(cacheKey);
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: {
+    efficiencyMetrics: EfficiencyMetric[];
+    pivotData: PivotData;
+    overallMetrics: Record<string, unknown>;
+    paxData: Array<{ restaurant: string; pax: number }>;
+  }) => {
+    if (!cacheKey) return;
+    cache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes cache
+  }, [cacheKey]);
+
   useEffect(() => {
     const abortController = new AbortController();
     
     const fetchEfficiencyData = async () => {
       if (!currentOrganization) return;
+      
+      // Check cache first - this will dramatically improve performance
+      const cachedData = getCachedData();
+      if (cachedData) {
+        setEfficiencyMetrics(cachedData.efficiencyMetrics);
+        setPivotData(cachedData.pivotData);
+        setOverallMetrics(cachedData.overallMetrics as {
+          restaurantCount: number;
+          totalPax: number;
+          avgSpendPerPax: number;
+          totalProducts: number;
+        });
+        setPaxData(cachedData.paxData);
+        setLoading(false);
+        setError(null);
+        return;
+      }
       
       setLoading(true);
       setError(null);
@@ -167,46 +227,22 @@ export const useEfficiencyData = () => {
           query = query.or('product_code.is.null,product_code.eq.');
         }
 
-        // Fetch all data using pagination with consistent ordering and cancellation
-        let allRows: unknown[] = [];
-        let page = 0;
-        const pageSize = 1000;
-        let hasMore = true;
-
+        // Fetch all data using cursor-based pagination (more efficient than OFFSET)
         // Add consistent ordering to prevent race conditions
         query = query.order('invoice_date', { ascending: true })
                     .order('created_at', { ascending: true });
 
-        while (hasMore && !abortController.signal.aborted) {
-          const offset = page * pageSize;
-          
-          const { data: pageRows, error: pageError } = await query
-            .range(offset, offset + pageSize - 1);
-
-          if (pageError) {
-            throw pageError;
-          }
-
-          if (!pageRows || pageRows.length === 0) {
-            hasMore = false;
-          } else {
-            allRows = allRows.concat(pageRows);
-            
-            // If we got less than pageSize, we've reached the end
-            if (pageRows.length < pageSize) {
-              hasMore = false;
-            }
-            
-            page++;
-          }
-        }
-
-        // Check if request was cancelled
+        // Check if request was cancelled before expensive operation
         if (abortController.signal.aborted) {
           return;
         }
 
-        const invoiceLines = allRows;
+        const invoiceLines = await fetchAllWithCursorPagination<unknown>(
+          query,
+          'invoice_date',
+          'asc',
+          1000
+        );
 
         // Validate data consistency
         console.log(`Efficiency Data Fetch: ${invoiceLines.length} rows fetched for date range ${dateRange?.start} to ${dateRange?.end}`);
@@ -532,6 +568,24 @@ export const useEfficiencyData = () => {
           totalProducts: totalProductsCount,
         });
 
+        // Cache the result for next time
+        setCachedData({
+          efficiencyMetrics: efficiencyArray,
+          pivotData: {
+            rows: sortedProducts,
+            columns: Array.from(locationNames).sort(),
+            data: pivotMap,
+            products: productsMap,
+          },
+          overallMetrics: {
+            restaurantCount: efficiencyArray.length,
+            totalPax,
+            avgSpendPerPax,
+            totalProducts: totalProductsCount,
+          },
+          paxData: paxDataArray,
+        });
+
       } catch (err) {
         if (!abortController.signal.aborted) {
           console.error('Error fetching efficiency data:', err);
@@ -550,7 +604,7 @@ export const useEfficiencyData = () => {
     return () => {
       abortController.abort();
     };
-  }, [dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, currentOrganization, currentBusinessUnit]);
+  }, [dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, currentOrganization, currentBusinessUnit, getCachedData, setCachedData]);
 
   return {
     efficiencyMetrics,

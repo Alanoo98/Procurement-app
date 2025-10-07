@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Package, Building2, MapPin, FileText, Search } from 'lucide-react';
-import { useOrganizationUsers } from '@/hooks/data/useCasesOfConcern';
+// Removed useOrganizationUsers import - not needed for mentions
 import { useLocations } from '@/hooks/data/useLocations';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -26,7 +26,6 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
   onClose,
   position,
 }) => {
-  const { users } = useOrganizationUsers();
   const { data: locations } = useLocations();
   const { currentOrganization } = useOrganization();
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
@@ -87,22 +86,7 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
   useEffect(() => {
     const newSuggestions: MentionSuggestion[] = [];
 
-    // Debug: Log users to console
-    console.log('Available users for mentions:', users);
-
-    // User suggestions
-    const filteredUsers = users.filter(user => 
-      (user.name || user.email || '').toLowerCase().includes(query.toLowerCase())
-    );
-    filteredUsers.forEach(user => {
-      newSuggestions.push({
-        id: user.id,
-        type: 'user',
-        label: user.name || user.email || 'Unknown User',
-        description: user.email || 'User',
-        icon: <User className="h-4 w-4" />
-      });
-    });
+    // User suggestions removed - no user data available
 
     // Product suggestions
     products.forEach(product => {
@@ -153,7 +137,7 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
 
     setSuggestions(newSuggestions.slice(0, 8)); // Limit to 8 suggestions
     setSelectedIndex(0);
-  }, [users, products, suppliers, locations, invoices, query]);
+  }, [products, suppliers, locations, invoices, query]);
 
   // Handle keyboard navigation
   useEffect(() => {

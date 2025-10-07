@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useFilterStore } from '@/store/filterStore';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getPriceValue } from '@/utils/getPriceValue';
+import { cache } from '@/lib/cache';
 
 type GroupBy = 'location' | 'supplier' | 'product' | 'document';
 
@@ -35,15 +36,64 @@ export const useInvoiceMetrics = (groupBy: GroupBy) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    const fetch = async () => {
-      if (!currentOrganization) {
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
+  // Create cache key based on all filter parameters
+  const cacheKey = useMemo(() => {
+    if (!currentOrganization) return '';
+    
+    const filterHash = JSON.stringify({
+      orgId: currentOrganization.id,
+      buId: currentBusinessUnit?.id,
+      groupBy,
+      dateRange,
+      restaurants: restaurants.sort(),
+      suppliers: suppliers.sort(),
+      categories: categories.sort(),
+      documentType,
+      productSearch,
+      productCodeFilter,
+    });
+    
+    return `invoice-metrics:${btoa(filterHash)}`;
+  }, [currentOrganization, currentBusinessUnit, groupBy, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
+
+  // Check cache first
+  const getCachedData = useCallback(() => {
+    if (!cacheKey) return null;
+    
+    console.log('🔍 Checking cache with key:', cacheKey);
+    const result = cache.get<MetricResult[]>(cacheKey);
+    console.log('🎯 Cache result:', result ? `${result.length} items` : 'no cache hit');
+    return result;
+  }, [cacheKey]);
+
+  // Cache the result
+  const setCachedData = useCallback((data: MetricResult[]) => {
+    if (!cacheKey) return;
+    
+    console.log('💾 Caching data with key:', cacheKey, 'data length:', data.length);
+    cache.set(cacheKey, data, 10 * 60 * 1000); // 10 minutes
+  }, [cacheKey]);
+
+  const fetch = useCallback(async () => {
+    if (!currentOrganization) {
+      setIsLoading(false);
+      return;
+    }
+    
+    // Check cache first - this will dramatically improve performance
+    const cachedData = getCachedData();
+    if (cachedData) {
+      console.log('✅ Using cached data:', cachedData.length, 'items');
+      setData(cachedData);
+      setIsLoading(false);
       setError(null);
+      return;
+    }
+    
+    console.log('🌐 No cache hit, fetching from API...');
+    
+    setIsLoading(true);
+    setError(null);
 
 
 
@@ -60,7 +110,8 @@ export const useInvoiceMetrics = (groupBy: GroupBy) => {
             product_code,
             description,
             total_price_after_discount,
-            total_price
+            total_price,
+            document_type
           `)
           .eq('organization_id', currentOrganization.id);
         
@@ -74,15 +125,13 @@ export const useInvoiceMetrics = (groupBy: GroupBy) => {
           query = query.gte('invoice_date', dateRange.start).lte('invoice_date', dateRange.end);
         }
 
-        // Apply location filter - IMPORTANT: This should always be applied to ensure consistency
-        // When no specific locations are selected, we want to show all data (mapped and pending)
+        // Apply location filter - Fixed tautology query
         if (restaurants.length > 0) {
           // When specific locations are selected, filter by those location IDs
           query = query.in('location_id', restaurants);
         } else {
-          // When no locations are selected, include both mapped and pending locations
-          // This ensures we show all data consistently
-          query = query.or('location_id.not.is.null,location_id.is.null');
+          // When no locations are selected, show only mapped locations (not null)
+          query = query.not('location_id', 'is', null);
         }
 
         // Apply supplier filter
@@ -121,6 +170,7 @@ export const useInvoiceMetrics = (groupBy: GroupBy) => {
           description: string | null;
           total_price_after_discount: number | null;
           total_price: number | null;
+          document_type: string | null;
         }> = [];
         let page = 0;
         const pageSize = 1000;
@@ -255,16 +305,21 @@ export const useInvoiceMetrics = (groupBy: GroupBy) => {
         // Sort by total spend descending
         result.sort((a, b) => b.total_spend - a.total_spend);
 
+        console.log('📊 API returned data:', result.length, 'locations');
+        console.log('📊 Sample location data:', result.slice(0, 2));
+        
         setData(result);
+        setCachedData(result); // Cache the result for next time
               } catch (err) {
           setError(err as Error);
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [currentOrganization, currentBusinessUnit, groupBy, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, getCachedData, setCachedData]);
 
+  useEffect(() => {
     fetch();
-  }, [dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter, currentOrganization, currentBusinessUnit, groupBy]);
+  }, [fetch]);
 
   return { data, isLoading, error };
 };

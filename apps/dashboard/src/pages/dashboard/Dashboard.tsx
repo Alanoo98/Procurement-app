@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/store/dashboardStore';
 import { useDashboardData } from '@/hooks/metrics';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useLocationComparisons } from '@/hooks/metrics/useRestaurantComparisons';
+import { useIntelligentPrefetch } from '@/hooks/data/useIntelligentPrefetch';
 import { DashboardSettings } from '@/components/features/dashboard/DashboardSettings';
 import { InefficientProductsCard } from '@/components/features/dashboard/InefficientProductsCard';
 import { PriceAlertsCard } from '@/components/features/dashboard/PriceAlertsCard';
@@ -22,6 +23,9 @@ export const Dashboard: React.FC = () => {
   const { data: dashboardData, isLoading, error } = useDashboardData();
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
   const { comparisonGroups } = useLocationComparisons();
+  
+  // Initialize intelligent prefetching for better performance
+  useIntelligentPrefetch();
   const {
     showPriceAlerts,
     showInefficientProducts,

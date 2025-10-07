@@ -7,3 +7,5 @@ export { useDocuments } from './useDocuments';
 export { useDocumentDetail } from './useDocumentDetail';
 export { usePaxData } from './usePaxData';
 export type { PaxRecord } from './usePaxData';
+export { useCasesOfConcern } from './useCasesOfConcern';
+export { useIntelligentPrefetch } from './useIntelligentPrefetch';

@@ -38,5 +38,7 @@ export const useLocations = () => {
     staleTime: STALE_TIMES.STALE, // Locations don't change often
     gcTime: CACHE_TIMES.LONG, // Keep in cache for 1 hour
     refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch on component mount if data exists
+    refetchOnReconnect: false, // Don't refetch on network reconnect
   });
 };
