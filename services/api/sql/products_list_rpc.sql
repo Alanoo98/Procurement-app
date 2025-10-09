@@ -32,7 +32,11 @@ returns table (
   total_tax numeric,
   category_id uuid,
   location_id uuid,
+  location_name text,
+  location_address text,
   supplier_id uuid,
+  supplier_name text,
+  supplier_address text,
   cursor jsonb
 ) language sql stable as $$
   with base as (
@@ -91,13 +95,19 @@ returns table (
          s.total_tax,
          s.category_id,
          s.location_id,
+         loc.name as location_name,
+         loc.address as location_address,
          s.supplier_id,
+         sup.name as supplier_name,
+         sup.address as supplier_address,
          jsonb_build_object(
            'invoice_date', s.invoice_date,
            'created_at', s.created_at,
            'id', s.id
          ) as cursor
   from seek s
+  left join public.locations loc on loc.location_id = s.location_id and loc.organization_id = p_org
+  left join public.suppliers sup on sup.supplier_id = s.supplier_id and sup.organization_id = p_org
   order by s.invoice_date asc, s.created_at asc, s.id asc
   limit greatest(1, coalesce(p_limit, 50));
 $$;

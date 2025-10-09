@@ -1,6 +1,6 @@
 # Generic Business Booking Sync Workflow
 # This workflow can be customized for different businesses by:
-# 1. Setting up the appropriate SOURCE_DB_* secrets for your source database
+# 1. Setting up the appropriate D6_DB_* secrets for your source database
 # 2. Modifying the booking_sync_github.py script for your business logic
 # 3. Adjusting the business_type parameter for your industry
 # 4. Customizing the sync parameters as needed
@@ -58,10 +58,10 @@ jobs:
         
     - name: Run booking sync
       env:
-        SOURCE_DB_SERVER: ${{ secrets.SOURCE_DB_SERVER }}
-        SOURCE_DB_DATABASE: ${{ secrets.SOURCE_DB_DATABASE }}
-        SOURCE_DB_USER: ${{ secrets.SOURCE_DB_USER }}
-        SOURCE_DB_PASSWORD: ${{ secrets.SOURCE_DB_PASSWORD }}
+        D6_DB_SERVER: ${{ secrets.D6_DB_SERVER }}
+        D6_DB_DATABASE: ${{ secrets.D6_DB_DATABASE }}
+        D6_DB_USER: ${{ secrets.D6_DB_USER }}
+        D6_DB_PASSWORD: ${{ secrets.D6_DB_PASSWORD }}
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         ORGANIZATION_ID: ${{ github.event.inputs.organization_id }}
