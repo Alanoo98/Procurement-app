@@ -52,8 +52,8 @@ export const Documents: React.FC = () => {
       filtered = filtered.filter(
         (doc) =>
           doc.invoice_number?.toLowerCase().includes(term) ||
-          doc.suppliers?.name?.toLowerCase().includes(term) ||
-          doc.locations?.name?.toLowerCase().includes(term) ||
+          doc.supplier_name?.toLowerCase().includes(term) ||
+          doc.location_name?.toLowerCase().includes(term) ||
           doc.product_codes?.some(code => code?.toLowerCase().includes(term)) ||
           doc.product_descriptions?.some(desc => desc?.toLowerCase().includes(term))
       );
@@ -70,9 +70,9 @@ export const Documents: React.FC = () => {
           case 'document':
             return (a.invoice_number || '').localeCompare(b.invoice_number || '');
           case 'supplier':
-            return (a.suppliers?.name || '').localeCompare(b.suppliers?.name || '');
+            return (a.supplier_name || '').localeCompare(b.supplier_name || '');
           case 'location':
-            return (a.locations?.name || '').localeCompare(b.locations?.name || '');
+            return (a.location_name || '').localeCompare(b.location_name || '');
           default:
             return 0;
         }
@@ -238,14 +238,14 @@ export const Documents: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 align-middle">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">{doc.suppliers?.name}</span>
-                    <span className="text-xs text-gray-400">{doc.suppliers?.address || <span className="italic text-gray-300">No address</span>}</span>
+                    <span className="text-sm font-medium text-gray-900">{doc.supplier_name}</span>
+                    <span className="text-xs text-gray-400">{doc.supplier_address || <span className="italic text-gray-300">No address</span>}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 align-middle">
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">{doc.locations?.name}</span>
-                    <span className="text-xs text-gray-400">{doc.locations?.address || <span className="italic text-gray-300">No address</span>}</span>
+                    <span className="text-sm font-medium text-gray-900">{doc.location_name}</span>
+                    <span className="text-xs text-gray-400">{doc.location_address || <span className="italic text-gray-300">No address</span>}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

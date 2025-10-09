@@ -26,8 +26,10 @@ export type InvoiceLineRow = {
   category_id?: string | null;
   location_id: string | null;
   location_name?: string | null;
+  location_address?: string | null;
   supplier_id: string | null;
   supplier_name?: string | null;
+  supplier_address?: string | null;
   cursor: InvoiceCursor;
 };
 

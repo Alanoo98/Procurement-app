@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN");
-const REPO = "Alanoo98/procurement-system";
+const REPO = "Alanoo98/procurement-app";
 const WORKFLOW_FILE = "booking-sync.yml";
 
 async function runBookingSync(organization_id: string, location_id?: string, start_date?: string, end_date?: string, business_type?: string) {
@@ -15,7 +15,7 @@ async function runBookingSync(organization_id: string, location_id?: string, sta
 
   const url = `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`;
     const body = {
-      ref: "master",
+      ref: "main",
       inputs: {
         organization_id,
         location_id: location_id || "",
@@ -78,7 +78,7 @@ serve(async (req) => {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey, x-client-trace-id, x-client-session-id, x-client-user-agent, x-client-request-id",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey, x-client-trace-id, x-client-session-id, x-client-user-agent, x-client-request-id, Prefer, prefer",
         "Access-Control-Max-Age": "86400"
       }
     });
@@ -112,7 +112,8 @@ serve(async (req) => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey, x-client-trace-id, x-client-session-id, x-client-user-agent, x-client-request-id, Prefer, prefer"
       }
     });
   } catch (err) {
@@ -137,7 +138,8 @@ serve(async (req) => {
       status: 500,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey, x-client-trace-id, x-client-session-id, x-client-user-agent, x-client-request-id, Prefer, prefer"
       }
     });
   }

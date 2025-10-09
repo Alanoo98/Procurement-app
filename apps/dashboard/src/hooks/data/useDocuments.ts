@@ -4,6 +4,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useFilterStore } from '@/store/filterStore';
 import { QUERY_KEYS, CACHE_TIMES, STALE_TIMES, createQueryKey } from '@/hooks/utils/queryConfig';
 import { getPriceValue } from '@/utils/getPriceValue';
+import { InvoiceLineRow } from './useInvoiceLinesList';
 
 interface RawInvoiceLine {
   id: string;
@@ -23,8 +24,10 @@ interface RawInvoiceLine {
   extracted_data_id: string;
   product_code?: string;
   description?: string;
-  suppliers?: { name: string; address?: string };
-  locations?: { name: string; address?: string };
+  supplier_name?: string;
+  supplier_address?: string;
+  location_name?: string;
+  location_address?: string;
 }
 
 interface DocumentData {
@@ -44,8 +47,10 @@ interface DocumentData {
   line_count: number;
   product_codes: string[];
   product_descriptions: string[];
-  suppliers?: { name: string; address?: string };
-  locations?: { name: string; address?: string };
+  supplier_name?: string;
+  supplier_address?: string;
+  location_name?: string;
+  location_address?: string;
 }
 
   export const useDocuments = () => {
@@ -83,7 +88,7 @@ interface DocumentData {
           let afterId: string | null = null;
 
           while (hasMore) {
-            const { data, error } = await supabase.rpc<any>('invoice_lines_list', {
+            const { data, error } = await supabase.rpc('invoice_lines_list', {
               p_org: currentOrganization.id,
               p_start_date: dateRange?.start ?? null,
               p_end_date: dateRange?.end ?? null,
@@ -97,12 +102,12 @@ interface DocumentData {
               p_after_id: afterId
             });
             if (error) throw error;
-            const pageRows = (data || []) as Array<any>;
+            const pageRows = (data || []) as Array<InvoiceLineRow>;
 
             // Document type filter (client-side, minimal cost on small page)
             const docFiltered = pageRows.filter(r => {
-              if (documentType === 'Faktura') return ['Faktura', 'Invoice'].includes(r.document_type);
-              if (documentType === 'Kreditnota') return ['Kreditnota', 'Credit note'].includes(r.document_type);
+              if (documentType === 'Faktura') return r.document_type && ['Faktura', 'Invoice'].includes(r.document_type);
+              if (documentType === 'Kreditnota') return r.document_type && ['Kreditnota', 'Credit note'].includes(r.document_type);
               return true;
             });
 
@@ -115,24 +120,26 @@ interface DocumentData {
 
             const mapped: RawInvoiceLine[] = codeFiltered.map(r => ({
               id: r.id,
-              invoice_number: r.invoice_number,
+              invoice_number: r.invoice_number || '',
               invoice_date: r.invoice_date,
-              due_date: r.due_date,
-              delivery_date: r.delivery_date,
-              document_type: r.document_type,
-              supplier_id: r.supplier_id,
-              location_id: r.location_id,
+              due_date: r.due_date || undefined,
+              delivery_date: r.delivery_date || undefined,
+              document_type: r.document_type || '',
+              supplier_id: r.supplier_id || '',
+              location_id: r.location_id || '',
               quantity: Number(r.quantity || 0),
               unit_price: Number(r.unit_price || 0),
               unit_price_after_discount: Number(r.unit_price_after_discount || 0),
               total_price: Number(r.total_price || 0),
               total_price_after_discount: Number(r.total_price_after_discount || 0),
               total_tax: Number(r.total_tax || 0),
-              extracted_data_id: r.extracted_data_id,
+              extracted_data_id: '', // This field is not available in InvoiceLineRow
               product_code: r.product_code || undefined,
               description: r.description || undefined,
-              suppliers: r.supplier_name ? { name: r.supplier_name } : undefined,
-              locations: r.location_name ? { name: r.location_name } : undefined
+              supplier_name: r.supplier_name || undefined,
+              supplier_address: r.supplier_address || undefined,
+              location_name: r.location_name || undefined,
+              location_address: r.location_address || undefined
             }));
 
             allRows = allRows.concat(mapped);
@@ -173,8 +180,10 @@ interface DocumentData {
                 line_count: 0,
                 product_codes: [],
                 product_descriptions: [],
-                suppliers: row.suppliers || { name: '', address: '' },
-                locations: row.locations || { name: '', address: '' },
+                supplier_name: row.supplier_name || '',
+                supplier_address: row.supplier_address || '',
+                location_name: row.location_name || '',
+                location_address: row.location_address || '',
               };
             }
 
