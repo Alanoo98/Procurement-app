@@ -33,22 +33,25 @@ def get_azure_connection():
 
     last = None
     for cand in candidates:
-        cs = (
-            "Driver={ODBC Driver 18 for SQL Server};"
-            f"Server=tcp:{server},1433;"
-            f"Database={database};"
-            f"Uid={cand};"
-            f"Pwd={password};"
-            "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-            "Authentication=SqlPassword;"
-        )
-        try:
-            logger.info(f"ODBC connect: user={cand} db={database}")
-            return pyodbc.connect(cs)
-        except pyodbc.Error as e:
-            logger.warning(f"Failed with user={cand}: {e}")
-            last = e
-            continue
+        # Try different connection string formats
+        connection_strings = [
+            # Format 1: Standard with explicit port
+            f"Driver={{ODBC Driver 18 for SQL Server}};Server=tcp:{server},1433;Database={database};Uid={cand};Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;Authentication=SqlPassword;",
+            # Format 2: Without explicit port
+            f"Driver={{ODBC Driver 18 for SQL Server}};Server={server};Database={database};Uid={cand};Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;Authentication=SqlPassword;",
+            # Format 3: With LoginTimeout
+            f"Driver={{ODBC Driver 18 for SQL Server}};Server=tcp:{server},1433;Database={database};Uid={cand};Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;Login Timeout=30;Authentication=SqlPassword;"
+        ]
+        
+        for i, cs in enumerate(connection_strings, 1):
+            try:
+                logger.info(f"ODBC connect attempt {i}: user={cand} db={database}")
+                logger.info(f"Connection string: {cs.replace(password, '***')}")
+                return pyodbc.connect(cs)
+            except pyodbc.Error as e:
+                logger.warning(f"Failed with user={cand} (attempt {i}): {e}")
+                last = e
+                continue
     
     raise last
 
