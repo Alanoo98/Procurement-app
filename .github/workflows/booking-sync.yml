@@ -49,6 +49,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Show runner public IP
+        run: |
+          echo "🔍 Runner Public IP: $(curl -s https://api.ipify.org)" | tee -a $GITHUB_STEP_SUMMARY
+          echo "📝 Add this IP to Azure SQL firewall rules to allow connection"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
