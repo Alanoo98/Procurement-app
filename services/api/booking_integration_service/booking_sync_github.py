@@ -19,10 +19,21 @@ def get_azure_connection():
     import os, pyodbc, logging
     logger = logging.getLogger(__name__)
 
-    server = os.getenv("D6_DB_SERVER")
-    database = os.getenv("D6_DB_DATABASE")
-    user = os.getenv("D6_DB_USER")
-    password = os.getenv("D6_DB_PASSWORD")
+    def _clean_env(var_name):
+        value = os.getenv(var_name)
+        if value is None:
+            return None
+        # Strip whitespace and remove surrounding quotes if present
+        value = value.strip()
+        if (value.startswith('"') and value.endswith('"')) or \
+           (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1]
+        return value
+
+    server = _clean_env("D6_DB_SERVER")
+    database = _clean_env("D6_DB_DATABASE")
+    user = _clean_env("D6_DB_USER")
+    password = _clean_env("D6_DB_PASSWORD")
 
     if not all([server, database, user, password]):
         raise ValueError("Missing DB env vars")
