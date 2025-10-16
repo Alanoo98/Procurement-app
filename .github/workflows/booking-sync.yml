@@ -54,6 +54,16 @@ jobs:
           echo "🔍 Runner Public IP: $(curl -s https://api.ipify.org)" | tee -a $GITHUB_STEP_SUMMARY
           echo "📝 Add this IP to Azure SQL firewall rules to allow connection"
 
+      - name: Network diagnostics to Azure SQL
+        run: |
+          echo "🔎 DNS resolution for server: $D6_DB_SERVER"
+          getent hosts "$D6_DB_SERVER" || true
+          echo "\n🔌 Probing TCP 1433 with openssl (5s timeout)"
+          timeout 5 openssl s_client -connect "$D6_DB_SERVER:1433" -tls1_2 -brief </dev/null || true
+          echo "\n🧪 Probing TCP 1433 with bash TCP (5s timeout)"
+          timeout 5 bash -lc "</dev/tcp/$D6_DB_SERVER/1433" && echo "TCP 1433 reachable" || echo "TCP 1433 not reachable"
+          echo "\nIf both probes fail, Azure SQL firewall or public access is blocking the runner."
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
