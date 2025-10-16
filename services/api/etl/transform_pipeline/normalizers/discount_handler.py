@@ -570,7 +570,10 @@ def process_discount_calculations(fields: Dict[str, Any], invoice_discount_patte
     if total_price is not None and total_price_after_discount is not None and quantity is not None and quantity > 0:
         total_discount = calculate_discount_from_price_difference(total_price, total_price_after_discount)
         if total_discount is not None and total_discount > 0:
-            calculated_discount_amount = total_discount / quantity
+            # Convert both values to Decimal for consistent arithmetic
+            total_discount_decimal = Decimal(str(total_discount))
+            quantity_decimal = Decimal(str(quantity))
+            calculated_discount_amount = float(total_discount_decimal / quantity_decimal)
             # Scenario 3: Calculated discount_amount from total prices
             fields["discount_amount"] = calculated_discount_amount
             
