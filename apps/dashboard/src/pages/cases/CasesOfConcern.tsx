@@ -42,9 +42,13 @@ export const CasesOfConcern: React.FC = () => {
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
-    const handleClickOutside = () => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (showDropdown) {
-        setShowDropdown(null);
+        const target = event.target as Element;
+        // Check if click is outside the dropdown menu
+        if (!target.closest('[data-dropdown-menu]')) {
+          setShowDropdown(null);
+        }
       }
     };
 
@@ -438,7 +442,7 @@ export const CasesOfConcern: React.FC = () => {
                             </div>
                             
                             {/* Three-dot menu */}
-                            <div className="relative">
+                            <div className="relative" data-dropdown-menu>
                               <button
                                 onClick={() => setShowDropdown(showDropdown === caseItem.id ? null : caseItem.id)}
                                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -447,7 +451,7 @@ export const CasesOfConcern: React.FC = () => {
                               </button>
                               
                               {showDropdown === caseItem.id && (
-                                <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]">
+                                <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[160px]" data-dropdown-menu>
                                   {isEditing ? (
                                     <>
                                       <button
@@ -526,13 +530,35 @@ export const CasesOfConcern: React.FC = () => {
                         {/* Post Content */}
                         <div className="p-4">
                           {isEditing ? (
-                            <textarea
-                              value={editData.description || ''}
-                              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                              rows={3}
-                              className="w-full text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                              placeholder="Describe the concern..."
-                            />
+                            <div className="space-y-4">
+                              {/* Concern Type Selector */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Concern Type</label>
+                                <select
+                                  value={editData.concern_type || caseItem.concern_type}
+                                  onChange={(e) => setEditData({ ...editData, concern_type: e.target.value as ConcernType })}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                  {Object.keys(concernTypeConfig).map((key) => (
+                                    <option key={key} value={key}>
+                                      {concernTypeConfig[key as ConcernType].label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              
+                              {/* Description */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                <textarea
+                                  value={editData.description || ''}
+                                  onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                  rows={3}
+                                  className="w-full text-gray-600 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Describe the concern..."
+                                />
+                              </div>
+                            </div>
                           ) : (
                             caseItem.description && (
                               <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -564,13 +590,7 @@ export const CasesOfConcern: React.FC = () => {
                             </button>
                             
                             <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                caseItem.status === 'open' 
-                                  ? 'bg-red-100 text-red-600' 
-                                  : 'bg-green-100 text-green-600'
-                              }`}>
-                                {caseItem.status === 'open' ? 'Open' : 'Resolved'}
-                              </span>
+                              {/* Status removed as requested */}
                             </div>
                           </div>
                         </div>

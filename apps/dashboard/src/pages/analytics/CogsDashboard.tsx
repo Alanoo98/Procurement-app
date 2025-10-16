@@ -241,20 +241,24 @@ export const CogsDashboard: React.FC = () => {
     return months[month - 1];
   };
 
-  const getCogsColor = (percentage: number | null) => {
+  const getCogsColor = (percentage: number | null, variance: number | null) => {
     if (percentage === null) return 'text-gray-500 bg-gray-50';
-    if (percentage <= 25) return 'text-green-600 bg-green-50';
-    if (percentage <= 35) return 'text-yellow-600 bg-yellow-50';
-    if (percentage <= 45) return 'text-orange-600 bg-orange-50';
-    return 'text-red-600 bg-red-50';
+    if (variance === null) return 'text-gray-500 bg-gray-50';
+    
+    // Variance-based logic: lower is better
+    if (variance <= 0) return 'text-green-600 bg-green-50'; // Excellent: at or below target
+    if (variance <= 0.5) return 'text-yellow-600 bg-yellow-50'; // Good: within 0.5% of target
+    return 'text-red-600 bg-red-50'; // Bad: more than 0.5% above target
   };
 
-  const getCogsStatus = (percentage: number | null) => {
+  const getCogsStatus = (percentage: number | null, variance: number | null) => {
     if (percentage === null) return 'No Revenue';
-    if (percentage <= 25) return 'Excellent';
-    if (percentage <= 35) return 'Good';
-    if (percentage <= 45) return 'Fair';
-    return 'Needs Attention';
+    if (variance === null) return 'No Target';
+    
+    // Variance-based logic: lower is better
+    if (variance <= 0) return 'Excellent'; // At or below target
+    if (variance <= 0.5) return 'Good'; // Within 0.5% of target
+    return 'Bad'; // More than 0.5% above target
   };
 
   if (error) {
@@ -475,16 +479,16 @@ export const CogsDashboard: React.FC = () => {
                     </td>
                     {dashboardData?.map((item) => (
                       <td key={item.location_id} className="px-6 py-4 whitespace-nowrap text-center border-r border-gray-200">
-                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCogsColor(item.cogs_percentage)}`}>
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCogsColor(item.cogs_percentage, item.cogs_percentage_vs_target)}`}>
                           {item.cogs_percentage !== null ? (
                             <>
                               {item.cogs_percentage.toFixed(1)}%
                               <span className="ml-1 text-xs opacity-75">
-                                ({getCogsStatus(item.cogs_percentage)})
+                                ({getCogsStatus(item.cogs_percentage, item.cogs_percentage_vs_target)})
                               </span>
                             </>
                           ) : (
-                            getCogsStatus(item.cogs_percentage)
+                            getCogsStatus(item.cogs_percentage, item.cogs_percentage_vs_target)
                           )}
                         </div>
                       </td>

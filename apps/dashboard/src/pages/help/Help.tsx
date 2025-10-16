@@ -1,23 +1,13 @@
 import React, { useState } from 'react';
 import {
   Book,
-  FileText,
-  Users,
   ShoppingCart,
-  AlertTriangle,
   BarChart3,
   ChevronDown,
   ChevronUp,
   Search,
-  LayoutDashboard,
-  Clock,
-  ArrowRight,
-  Target,
-  TrendingDown,
-  DollarSign,
   Settings,
   Database,
-  Package,
 } from 'lucide-react';
 
 interface HelpSection {
@@ -37,132 +27,66 @@ export const Help: React.FC = () => {
       id: 'getting-started',
       title: 'Getting Started',
       icon: Book,
-      description: 'Essential information to get you started',
+      description: 'Quick start guide for the procurement system',
       content: [
-        'Welcome to the Procurement System MVP! This system helps you manage suppliers, products, and track spending.',
-        'Start by exploring the Dashboard to see your current data and key metrics.',
-        'Use the sidebar navigation to access different sections: Documents, Locations, Suppliers, and Products.',
-        'The system automatically processes invoices and extracts product information for analysis.',
+        'Use the sidebar navigation to access all procurement features.',
+        'Start with the Dashboard to see key metrics and recent activity.',
+        'Use Global Filters to focus on specific locations, suppliers, or date ranges.',
+        'Navigate using the sidebar - all main features are organized by category.',
       ]
     },
     {
-      id: 'dashboard',
-      title: 'Dashboard',
-      icon: LayoutDashboard,
-      description: 'Overview of your procurement data',
-      content: [
-        'The dashboard shows key metrics and recent activity.',
-        'View price alerts for products with significant price variations.',
-        'See inefficient products that may need attention.',
-        'Track your spending patterns and supplier performance.',
-      ]
-    },
-    {
-      id: 'documents',
-      title: 'Documents',
-      icon: FileText,
-      description: 'Manage invoices and procurement documents',
-      content: [
-        'Upload invoices and receipts for automatic processing.',
-        'View processed documents and extracted product information.',
-        'Track document status and processing results.',
-        'Export document data for external analysis.',
-      ]
-    },
-    {
-      id: 'locations',
-      title: 'Locations',
-      icon: Package,
-      description: 'Manage your restaurant locations',
-      content: [
-        'Add and manage your restaurant locations.',
-        'Set up location-specific settings and preferences.',
-        'Track spending and product usage by location.',
-        'Compare performance across different locations.',
-      ]
-    },
-    {
-      id: 'suppliers',
-      title: 'Suppliers',
-      icon: Users,
-      description: 'Manage supplier information and relationships',
-      content: [
-        'Add and manage supplier contact information.',
-        'Track supplier performance and delivery times.',
-        'View supplier spending and product offerings.',
-        'Export supplier data for analysis.',
-      ]
-    },
-    {
-      id: 'products',
-      title: 'Products',
+      id: 'procurement-universe',
+      title: 'Procurement Management',
       icon: ShoppingCart,
-      description: 'Manage product catalog and pricing',
+      description: 'Core procurement features and analytics',
       content: [
-        'View all products across your locations.',
-        'Track product prices and supplier information.',
-        'Identify products with price variations.',
-        'Export product data with prices and suppliers.',
+        'Dashboard: Overview of spending, alerts, and key metrics.',
+        'Products: Manage product catalog, view pricing, and track efficiency.',
+        'Suppliers: Track supplier performance and relationships.',
+        'Price Alerts: Monitor price variations and potential savings.',
+        'Price Negotiations: Track and manage supplier negotiations.',
+        'Efficiency Analysis: Identify cost optimization opportunities.',
+        'COGS Analysis: Cost of goods sold tracking and analysis.',
+        'Product Targets: Set and monitor procurement goals.',
+        'Cases of Concern: Track and resolve procurement issues.',
       ]
     },
     {
-      id: 'price-alerts',
-      title: 'Price Alerts',
-      icon: AlertTriangle,
-      description: 'Monitor price variations and potential savings',
+      id: 'analytics',
+      title: 'Analytics & Reporting',
+      icon: BarChart3,
+      description: 'Advanced analytics and reporting features',
       content: [
-        'Get notified when products have significant price differences.',
-        'Track price variations across suppliers and locations.',
-        'Calculate potential savings from price optimization.',
-        'Resolve price discrepancies with suppliers.',
+        'Efficiency Analysis: Identify products with price variations.',
+        'COGS Dashboard: Cost analysis and trend tracking.',
+        'PAX Analytics: Customer count and revenue analysis.',
+        'Product Efficiency: Individual product performance analysis.',
+        'Cases of Concern: Track and resolve procurement issues.',
       ]
     },
     {
-      id: 'efficiency',
-      title: 'Efficiency',
-      icon: TrendingDown,
-      description: 'Identify inefficient products and opportunities',
-      content: [
-        'Find products with significant price variations.',
-        'Identify standardization opportunities.',
-        'Track efficiency improvements over time.',
-        'Generate reports for supplier negotiations.',
-      ]
-    },
-    {
-      id: 'product-targets',
-      title: 'Product Targets',
-      icon: Target,
-      description: 'Set and track procurement goals',
-      content: [
-        'Create targets for specific products and suppliers.',
-        'Track progress toward cost reduction goals.',
-        'Monitor target status and deadlines.',
-        'Calculate potential and actual savings.',
-      ]
-    },
-    {
-      id: 'import-data',
-      title: 'Import Data',
+      id: 'data-management',
+      title: 'Data Management',
       icon: Database,
-      description: 'Import and process procurement data',
+      description: 'Import, export, and data processing',
       content: [
-        'Import supplier and product data from external sources.',
-        'Process invoices and receipts automatically.',
-        'Map products to standard categories.',
-        'Validate and clean imported data.',
+        'Import Data: Upload and process procurement data.',
+        'Documents: Manage invoices and procurement documents.',
+        'Product Categories: Organize and categorize products.',
+        'Locations: Manage restaurant locations and settings.',
       ]
     },
     {
       id: 'settings',
-      title: 'Settings',
+      title: 'Settings & Configuration',
       icon: Settings,
-      description: 'Configure system settings and preferences',
+      description: 'System configuration and preferences',
       content: [
-        'Set up price alert thresholds.',
-        'Configure currency settings for different locations.',
-        'Manage product category mappings.',
-        'Set up user preferences and notifications.',
+        'Price Alert Settings: Configure alert thresholds.',
+        'Currency Settings: Set up multi-currency support.',
+        'Product Mapping: Map products to standard categories.',
+        'Pending Mappings: Resolve product mapping conflicts.',
       ]
     }
   ];
@@ -188,7 +112,7 @@ export const Help: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Help</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Essential information for using the procurement system
+          Quick reference for the procurement system (Beta v1.0)
         </p>
       </div>
 
