@@ -7,8 +7,8 @@ interface NavigationState {
   searchTerm?: string;
   filters?: {
     dateRange?: { start: string; end: string } | null;
-    restaurant?: string;
-    supplier?: string;
+    restaurants?: string[];
+    suppliers?: string[];
     categories?: string[];
     documentType?: 'all' | 'Faktura' | 'Kreditnota';
   };

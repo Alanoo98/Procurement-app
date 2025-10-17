@@ -12,7 +12,8 @@ import {
   X,
   Shield,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  Activity
 } from 'lucide-react';
 import { useAdminAuth } from '../contexts/AdminAuthContext';
 import { ConfigurationStatus } from './ConfigurationStatus';
@@ -20,6 +21,7 @@ import { ConfigurationStatus } from './ConfigurationStatus';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: BarChart3 },
   { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Sessions', href: '/admin/sessions', icon: Activity },
   { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
   { name: 'Business Units', href: '/admin/business-units', icon: Briefcase },
   { name: 'Locations', href: '/admin/locations', icon: MapPin },

@@ -10,6 +10,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useUsers } from '../hooks/useUsers';
+import { useRealAuthLogs } from '../hooks/useRealAuthLogs';
 import { CreateUserForm } from '../components/forms/CreateUserForm';
 import { CreateUserWithAuthForm } from '../components/forms/CreateUserWithAuthForm';
 import { EditUserForm } from '../components/forms/EditUserForm';
@@ -24,6 +25,12 @@ export const UserManagement: React.FC = () => {
     error, 
     deleteUser 
   } = useUsers();
+
+  const { 
+    authEvents, 
+    activeUsers, 
+    getEventsByUser 
+  } = useRealAuthLogs();
   
   console.log('UserManagement state:', { users, loading, error });
   
@@ -283,17 +290,28 @@ export const UserManagement: React.FC = () => {
                        </td>
                        <td className="px-6 py-4 whitespace-nowrap">
                          <div className="flex items-center space-x-2">
-                           <div className={`w-2 h-2 rounded-full ${
-                             user.last_login && new Date(user.last_login) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                               ? 'bg-green-500' 
-                               : 'bg-gray-400'
-                           }`}></div>
-                           <span className="text-sm text-gray-600">
-                             {user.last_login && new Date(user.last_login) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                               ? 'Active'
-                               : 'Inactive'
-                             }
-                           </span>
+                           {(() => {
+                             const userAuthEvents = getEventsByUser(user.user_id);
+                             const recentEvents = userAuthEvents.filter(event => 
+                               new Date(event.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                             );
+                             const isActive = recentEvents.length > 0;
+                             return (
+                               <>
+                                 <div className={`w-2 h-2 rounded-full ${
+                                   isActive ? 'bg-green-500' : 'bg-gray-400'
+                                 }`}></div>
+                                 <span className="text-sm text-gray-600">
+                                   {isActive ? 'Active' : 'Inactive'}
+                                 </span>
+                                 {recentEvents.length > 0 && (
+                                   <span className="text-xs text-gray-500">
+                                     ({recentEvents.length} events)
+                                   </span>
+                                 )}
+                               </>
+                             );
+                           })()}
                          </div>
                        </td>
                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

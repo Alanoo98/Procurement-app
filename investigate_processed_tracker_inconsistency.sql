@@ -114,7 +114,46 @@ ORDER BY
     pt.organization_id,
     pt.document_id;
 
--- Additional summary query
+-- Additional summary query (run separately)
+WITH processed_tracker_analysis AS (
+    -- Get all processed_tracker records marked as 'processed'
+    SELECT 
+        pt.id as pt_id,
+        pt.document_id,
+        pt.organization_id,
+        pt.location_id,
+        pt.status as pt_status,
+        pt.created_at as pt_created_at,
+        pt.updated_at as pt_updated_at
+    FROM processed_tracker pt
+    WHERE pt.status = 'processed'
+),
+extracted_data_analysis AS (
+    -- Check if extracted_data exists and is processed
+    SELECT 
+        ed.id as ed_id,
+        ed.external_id,
+        ed.status as ed_status,
+        ed.organization_id as ed_org_id,
+        ed.processed_at,
+        -- Try to match with processed_tracker document_id
+        CASE 
+            WHEN ed.external_id LIKE '%.pdf' THEN REPLACE(ed.external_id, '.pdf', '')
+            ELSE ed.external_id
+        END as clean_external_id
+    FROM extracted_data ed
+),
+invoice_lines_analysis AS (
+    -- Check if invoice_lines exist for the extracted_data
+    SELECT 
+        il.id as il_id,
+        il.extracted_data_id,
+        il.invoice_number,
+        il.organization_id as il_org_id,
+        il.location_id as il_location_id,
+        COUNT(*) OVER (PARTITION BY il.extracted_data_id) as line_count
+    FROM invoice_lines il
+)
 SELECT 
     'SUMMARY' as analysis_type,
     COUNT(*) as total_processed_tracker_records,

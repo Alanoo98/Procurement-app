@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, supabaseAdmin } from '../lib/supabase';
+import { supabaseAdmin } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 
 export interface UserSession {
@@ -50,13 +50,28 @@ export const useUserSessions = () => {
       setError(null);
 
       if (!supabaseAdmin) {
+        console.error('❌ Supabase Admin client not configured. Check VITE_SUPABASE_SERVICE_ROLE_KEY');
         throw new Error('Admin client not configured');
       }
+
+      console.log('✅ Supabase Admin client is configured');
 
       // Fetch all users with their session data
       const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
       
       if (authError) throw authError;
+
+      // Debug: Log the raw data from Supabase
+      console.log('🔍 Raw Supabase Auth Data:', {
+        totalUsers: authUsers.users.length,
+        users: authUsers.users.map(user => ({
+          email: user.email,
+          last_sign_in_at: user.last_sign_in_at,
+          created_at: user.created_at,
+          email_confirmed_at: user.email_confirmed_at,
+          user_metadata: user.user_metadata
+        }))
+      });
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -73,8 +88,11 @@ export const useUserSessions = () => {
         
         const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
         
+        // More accurate active session detection
+        // Consider a user active if they've logged in within the last 7 days
+        // This is more realistic for business applications
         const isActive = lastSignIn ? 
-          (now.getTime() - lastSignIn.getTime()) < (24 * 60 * 60 * 1000) : false; // Active if logged in within 24 hours
+          (now.getTime() - lastSignIn.getTime()) < (7 * 24 * 60 * 60 * 1000) : false;
 
         return {
           id: user.id,

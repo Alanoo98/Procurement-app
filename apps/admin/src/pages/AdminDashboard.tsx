@@ -8,9 +8,12 @@ import { useInvitations } from '../hooks/useInvitations';
 import { useUserActivity } from '../hooks/useUserActivity';
 import { useSystemMetrics } from '../hooks/useSystemMetrics';
 import { useUserSessions } from '../hooks/useUserSessions';
+import { useRealAuthLogs } from '../hooks/useRealAuthLogs';
+import { useSessionBasedActivity } from '../hooks/useSessionBasedActivity';
 import { UserActivityAnalytics } from '../components/UserActivityAnalytics';
 import { UserTrendsChart } from '../components/UserTrendsChart';
 import { UserActivityLog } from '../components/UserActivityLog';
+import SessionAnalyticsDashboard from '../components/SessionAnalyticsDashboard';
 
 export const AdminDashboard: React.FC = () => {
   const { users, loading: usersLoading } = useUsers();
@@ -21,8 +24,20 @@ export const AdminDashboard: React.FC = () => {
   const { loginStats, getRecentLogins, getMostActiveUsers, loading: activityLoading } = useUserActivity();
   const { systemMetrics, performanceMetrics, getUptimeStatus, loading: metricsLoading } = useSystemMetrics();
   const { sessionStats, getActiveUsers, getNewUsers, loading: sessionsLoading } = useUserSessions();
+  const { 
+    authEvents, 
+    activeUsers, 
+    getRecentEvents, 
+    getSessionStats: getAuthStats 
+  } = useRealAuthLogs();
+  
+  const { 
+    userSessionData, 
+    analytics: sessionAnalytics, 
+    loading: sessionLoading 
+  } = useSessionBasedActivity();
 
-  const isLoading = usersLoading || orgsLoading || unitsLoading || locationsLoading || invitationsLoading || activityLoading || metricsLoading || sessionsLoading;
+  const isLoading = usersLoading || orgsLoading || unitsLoading || locationsLoading || invitationsLoading || activityLoading || metricsLoading || sessionsLoading || sessionLoading;
 
   // Calculate real statistics - NO MOCK DATA
   const stats = [
@@ -34,15 +49,15 @@ export const AdminDashboard: React.FC = () => {
     },
     { 
       name: 'Active Users (7d)', 
-      value: loginStats.activeUsers.toString(), 
+      value: getAuthStats().activeUsers.toString(), 
       icon: LogIn,
-      description: `${Math.round((loginStats.activeUsers / Math.max(loginStats.totalUsers, 1)) * 100)}% of total users`
+      description: `${Math.round((getAuthStats().activeUsers / Math.max(getAuthStats().totalUsers, 1)) * 100)}% of total users`
     },
     { 
       name: 'Recent Logins (24h)', 
-      value: loginStats.recentLogins.toString(), 
+      value: getAuthStats().recentEvents.toString(), 
       icon: Activity,
-      description: 'Users logged in today'
+      description: 'Auth events in last 24h'
     },
     { 
       name: 'Organizations', 
@@ -70,7 +85,7 @@ export const AdminDashboard: React.FC = () => {
     },
     { 
       name: 'Avg Session Duration', 
-      value: `${loginStats.averageSessionDuration}m`, 
+      value: `${getAuthStats().averageSessionDuration}m`, 
       icon: Clock,
       description: 'Average user session'
     },
@@ -117,18 +132,20 @@ export const AdminDashboard: React.FC = () => {
     return date.toLocaleDateString();
   };
 
-  // Generate recent activity from real data with enhanced information
+  // Generate recent activity from real auth events
   const recentActivity = [
-    // Recent logins
-    ...getRecentLogins(2).map((user, index) => ({
-      id: `login-${index}`,
+    // Recent auth events
+    ...getRecentEvents(24).slice(0, 3).map((event, index) => ({
+      id: event.id,
       type: 'login',
-      action: 'User logged in',
-      primaryText: user.email,
-      secondaryText: `Last seen: ${formatRelativeTime(user.last_sign_in_at)}`,
-      tertiaryText: user.user_metadata?.full_name ? `Name: ${user.user_metadata.full_name}` : undefined,
-      time: formatRelativeTime(user.last_sign_in_at),
-      absoluteTime: new Date(user.last_sign_in_at).toLocaleDateString(),
+      action: event.action === 'login' ? 'User logged in' : 
+              event.action === 'token_refresh' ? 'Session refreshed' :
+              event.action === 'token_revoked' ? 'Session ended' : 'Auth activity',
+      primaryText: event.email,
+      secondaryText: `From ${event.ip_address || 'Unknown IP'}`,
+      tertiaryText: `Action: ${event.action}`,
+      time: formatRelativeTime(event.timestamp),
+      absoluteTime: new Date(event.timestamp).toLocaleDateString(),
       icon: LogIn
     })),
     // User registrations
@@ -508,6 +525,11 @@ export const AdminDashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Session-Based Activity Analytics */}
+      <div className="mt-8">
+        <SessionAnalyticsDashboard />
       </div>
     </div>
   );

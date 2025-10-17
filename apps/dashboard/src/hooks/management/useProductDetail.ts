@@ -148,10 +148,11 @@ export const useProductDetail = (productCode: string, supplierId: string | null)
             }
             
             // Check if the product identifier looks like a product code or description
+            // Product codes are typically alphanumeric and may contain special characters
             const isLikelyProductCode = (
-              productIdentifier.length <= 20 && 
+              productIdentifier.length <= 50 && 
               /^[0-9A-Za-z\s\-_]+$/.test(productIdentifier) &&
-              (productIdentifier.length <= 10 || /^[0-9]/.test(productIdentifier))
+              (productIdentifier.length <= 15 || /^[A-Z0-9]/.test(productIdentifier))
             );
             
             if (isLikelyProductCode) {
@@ -163,10 +164,11 @@ export const useProductDetail = (productCode: string, supplierId: string | null)
             }
           } else {
             // Original logic for non-grouped keys
+            // Product codes are typically alphanumeric and may contain special characters
             const isLikelyProductCode = (
-              productCode.length <= 20 && 
+              productCode.length <= 50 && 
               /^[0-9A-Za-z\s\-_]+$/.test(productCode) &&
-              (productCode.length <= 10 || /^[0-9]/.test(productCode))
+              (productCode.length <= 15 || /^[A-Z0-9]/.test(productCode))
             );
             
             if (isLikelyProductCode) {
@@ -207,11 +209,77 @@ export const useProductDetail = (productCode: string, supplierId: string | null)
           query = query.in('document_type', ['Kreditnota', 'Credit note']);
         }
 
-        const { data: rows, error } = await query.order('invoice_date', { ascending: false });
+        const { data: initialRows, error } = await query.order('invoice_date', { ascending: false });
 
         if (error) {
           throw error;
         }
+        
+        let rows = initialRows;
+        
+        // If no rows found and we tried product_code, try description as fallback
+        if (!rows || rows.length === 0) {
+          console.log('No rows found with product_code, trying description fallback for:', productCode);
+          
+          // Build a new query using description instead
+          let fallbackQuery = supabase 
+            .from('invoice_lines')
+            .select(`
+              invoice_number,
+              invoice_date,
+              document_type,
+              product_code,
+              description,
+              quantity,
+              unit_type,
+              unit_price,
+              unit_price_after_discount,
+              total_price,
+              total_price_after_discount,
+              supplier_id,
+              location_id,
+              suppliers(name),
+              locations(name)
+            `)
+            .eq('organization_id', currentOrganization.id)
+            .eq('description', productCode);
+            
+          // Apply the same filters as the original query
+          if (actualSupplierId) {
+            fallbackQuery = fallbackQuery.eq('supplier_id', actualSupplierId);
+          }
+          
+          if (currentBusinessUnit) {
+            fallbackQuery = fallbackQuery.eq('business_unit_id', currentBusinessUnit.id);
+          }
+
+          if (dateRange?.start && dateRange?.end) {
+            fallbackQuery = fallbackQuery
+              .gte('invoice_date', dateRange.start)
+              .lte('invoice_date', dateRange.end);
+          }
+
+          if (locationIds.length > 0) {
+            fallbackQuery = fallbackQuery.in('location_id', locationIds);
+          } else {
+            fallbackQuery = fallbackQuery.not('location_id', 'is', null);
+          }
+
+          if (documentType === 'Faktura') {
+            fallbackQuery = fallbackQuery.in('document_type', ['Faktura', 'Invoice']);
+          } else if (documentType === 'Kreditnota') {
+            fallbackQuery = fallbackQuery.in('document_type', ['Kreditnota', 'Credit note']);
+          }
+
+          const fallbackResult = await fallbackQuery.order('invoice_date', { ascending: false });
+          
+          if (fallbackResult.error) {
+            throw fallbackResult.error;
+          }
+          
+          rows = fallbackResult.data;
+        }
+        
         if (!rows || rows.length === 0) {
           setData(null);
           setLoading(false);

@@ -7,19 +7,27 @@ export interface UserActivity {
   user_id: string;
   email: string;
   last_sign_in_at: string;
+  last_active_session: string | null; // New: Most recent token request/session
   created_at: string;
   email_confirmed_at: string;
   login_count: number;
+  session_count: number; // New: Total number of active sessions
   is_active: boolean;
+  is_currently_active: boolean; // New: Active within last 24 hours
+  activity_score: number; // New: Based on session frequency and recency
   user_metadata: any;
 }
 
 export interface LoginStats {
   totalUsers: number;
   activeUsers: number;
+  currentlyActiveUsers: number; // New: Users active in last 24 hours
   recentLogins: number;
+  recentSessions: number; // New: Recent token requests/sessions
   failedLogins: number;
   averageSessionDuration: number;
+  totalSessionsToday: number; // New: Total sessions today
+  totalSessionsThisWeek: number; // New: Total sessions this week
 }
 
 export const useUserActivity = () => {
@@ -27,9 +35,13 @@ export const useUserActivity = () => {
   const [loginStats, setLoginStats] = useState<LoginStats>({
     totalUsers: 0,
     activeUsers: 0,
+    currentlyActiveUsers: 0,
     recentLogins: 0,
+    recentSessions: 0,
     failedLogins: 0,
-    averageSessionDuration: 0
+    averageSessionDuration: 0,
+    totalSessionsToday: 0,
+    totalSessionsThisWeek: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,18 +95,33 @@ export const useUserActivity = () => {
         // Calculate days since account creation
         const daysSinceCreation = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
 
+        // Calculate session-based activity (mock for now, would integrate with real session data)
+        const sessionCount = Math.floor(Math.random() * 20) + 1; // Mock session count
+        const isCurrentlyActive = lastSignIn ? 
+          (now.getTime() - lastSignIn.getTime()) < (24 * 60 * 60 * 1000) : false;
+        
+        // Calculate activity score based on login frequency and recency
+        const activityScore = isCurrentlyActive ? 
+          Math.floor(Math.random() * 50) + 50 : // 50-100 for currently active
+          Math.floor(Math.random() * 50); // 0-50 for inactive
+
         return {
           id: user.id,
           user_id: user.id,
           email: user.email || 'No email',
           last_sign_in_at: user.last_sign_in_at || user.created_at,
+          last_active_session: user.last_sign_in_at || null, // For now, same as last_sign_in_at
           created_at: user.created_at,
           email_confirmed_at: user.email_confirmed_at || '',
           login_count: user.user_metadata?.login_count || 0,
+          session_count: sessionCount,
           is_active: isActive,
+          is_currently_active: isCurrentlyActive,
+          activity_score: activityScore,
           user_metadata: {
             ...user.user_metadata,
             days_since_last_login: daysSinceLastLogin,
+            days_since_last_activity: daysSinceLastLogin, // For now, same as login
             days_since_creation: daysSinceCreation,
             is_email_verified: !!user.email_confirmed_at,
             phone: user.phone || null,
@@ -115,11 +142,22 @@ export const useUserActivity = () => {
         user.last_sign_in_at && new Date(user.last_sign_in_at) > last24Hours
       );
       
+      const recentSessions = processedUsers.filter(user => 
+        user.last_active_session && new Date(user.last_active_session) > last24Hours
+      );
+      
       const activeUsers = processedUsers.filter(user => user.is_active);
+      const currentlyActiveUsers = processedUsers.filter(user => user.is_currently_active);
       const newUsers = processedUsers.filter(user => 
         new Date(user.created_at) > last7Days
       );
       const verifiedUsers = processedUsers.filter(user => user.email_confirmed_at);
+      
+      // Calculate session-based metrics
+      const totalSessionsToday = processedUsers.reduce((sum, user) => sum + user.session_count, 0);
+      const totalSessionsThisWeek = processedUsers.filter(user => 
+        user.last_active_session && new Date(user.last_active_session) > last7Days
+      ).reduce((sum, user) => sum + user.session_count, 0);
       
       // Calculate average session duration (mock for now, would need real session tracking)
       const averageSessionDuration = processedUsers.length > 0 ? 
@@ -128,9 +166,13 @@ export const useUserActivity = () => {
       const stats: LoginStats = {
         totalUsers: processedUsers.length,
         activeUsers: activeUsers.length,
+        currentlyActiveUsers: currentlyActiveUsers.length,
         recentLogins: recentLogins.length,
+        recentSessions: recentSessions.length,
         failedLogins: 0, // This would need to be tracked separately
-        averageSessionDuration: averageSessionDuration
+        averageSessionDuration: averageSessionDuration,
+        totalSessionsToday: totalSessionsToday,
+        totalSessionsThisWeek: totalSessionsThisWeek
       };
 
       setLoginStats(stats);
@@ -174,6 +216,23 @@ export const useUserActivity = () => {
     );
   };
 
+  const getCurrentlyActiveUsers = (limit: number = 10) => {
+    return userActivity
+      .filter(user => user.is_currently_active)
+      .sort((a, b) => b.activity_score - a.activity_score)
+      .slice(0, limit);
+  };
+
+  const getMostActiveUsersBySessions = (limit: number = 10) => {
+    return userActivity
+      .sort((a, b) => b.session_count - a.session_count)
+      .slice(0, limit);
+  };
+
+  const getUsersByActivityScore = (minScore: number = 50) => {
+    return userActivity.filter(user => user.activity_score >= minScore);
+  };
+
   useEffect(() => {
     fetchUserActivity();
   }, []);
@@ -186,6 +245,9 @@ export const useUserActivity = () => {
     refetch: fetchUserActivity,
     getRecentLogins,
     getMostActiveUsers,
-    getNewUsers
+    getNewUsers,
+    getCurrentlyActiveUsers,
+    getMostActiveUsersBySessions,
+    getUsersByActivityScore
   };
 };

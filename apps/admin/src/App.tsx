@@ -9,6 +9,7 @@ import { OrganizationManagement } from './pages/OrganizationManagement';
 import { BusinessUnitManagement } from './pages/BusinessUnitManagement';
 import { LocationManagement } from './pages/LocationManagement';
 import { InvitationManagement } from './pages/InvitationManagement';
+import { SessionManagement } from './pages/SessionManagement';
 
 const AdminRoutes: React.FC = () => {
   const { isAdminAuthenticated, isLoading } = useAdminAuth();
@@ -39,6 +40,7 @@ const AdminRoutes: React.FC = () => {
         <Route path="/admin/business-units" element={<BusinessUnitManagement />} />
         <Route path="/admin/locations" element={<LocationManagement />} />
         <Route path="/admin/invitations" element={<InvitationManagement />} />
+        <Route path="/admin/sessions" element={<SessionManagement />} />
         <Route path="/admin/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p>Settings page coming soon...</p></div>} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>

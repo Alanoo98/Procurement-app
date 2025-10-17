@@ -43,8 +43,8 @@ export const Products: React.FC = () => {
   React.useEffect(() => {
     if (filters) {
       if (filters.dateRange !== undefined) filterStore.setDateRange(filters.dateRange);
-      if (filters.restaurant !== undefined) filterStore.setRestaurants(filters.restaurant ? [filters.restaurant] : []);
-      if (filters.supplier !== undefined) filterStore.setSuppliers(filters.supplier ? [filters.supplier] : []);
+      if (filters.restaurants !== undefined) filterStore.setRestaurants(filters.restaurants || []);
+      if (filters.suppliers !== undefined) filterStore.setSuppliers(filters.suppliers || []);
       if (filters.categories !== undefined) filterStore.setCategories(filters.categories);
       if (filters.documentType !== undefined) filterStore.setDocumentType(filters.documentType);
     }
@@ -115,8 +115,8 @@ export const Products: React.FC = () => {
       searchTerm,
       filters: {
         dateRange: filterStore.dateRange,
-        restaurant: filterStore.restaurants[0],
-        supplier: filterStore.suppliers[0],
+        restaurants: filterStore.restaurants,
+        suppliers: filterStore.suppliers,
         categories: filterStore.categories,
         documentType: filterStore.documentType,
       },
@@ -171,8 +171,8 @@ export const Products: React.FC = () => {
                 searchTerm,
                 filters: {
                   dateRange: filterStore.dateRange,
-                  restaurant: filterStore.restaurants[0],
-                  supplier: filterStore.suppliers[0],
+                  restaurants: filterStore.restaurants,
+                  suppliers: filterStore.suppliers,
                   categories: filterStore.categories,
                   documentType: filterStore.documentType,
                 },
