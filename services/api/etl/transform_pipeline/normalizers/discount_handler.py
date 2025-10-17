@@ -579,9 +579,15 @@ def process_discount_calculations(fields: Dict[str, Any], invoice_discount_patte
             
             # Calculate unit_price_after_discount if we have unit_price
             if unit_price is not None:
-                calculated_unit_price_after_discount = unit_price - calculated_discount_amount
+                # Convert both values to Decimal for consistent arithmetic
+                unit_price_decimal = Decimal(str(unit_price))
+                calculated_discount_amount_decimal = Decimal(str(calculated_discount_amount))
+                calculated_unit_price_after_discount = unit_price_decimal - calculated_discount_amount_decimal
+                calculated_unit_price_after_discount = calculated_unit_price_after_discount.quantize(
+                    Decimal('0.01'), rounding=ROUND_HALF_UP
+                )
                 if fields.get("unit_price_after_discount") is None:
-                    fields["unit_price_after_discount"] = calculated_unit_price_after_discount
+                    fields["unit_price_after_discount"] = float(calculated_unit_price_after_discount)
                     # Calculated unit_price_after_discount
             
             return fields
@@ -616,9 +622,15 @@ def process_discount_calculations(fields: Dict[str, Any], invoice_discount_patte
     
     # If we have unit_price_after_discount but no unit_price, and we have discount_amount
     if unit_price_after_discount is not None and discount_amount is not None:
-        calculated_unit_price = unit_price_after_discount + discount_amount
+        # Convert both values to Decimal for consistent arithmetic
+        unit_price_after_discount_decimal = Decimal(str(unit_price_after_discount))
+        discount_amount_decimal = Decimal(str(discount_amount))
+        calculated_unit_price = unit_price_after_discount_decimal + discount_amount_decimal
+        calculated_unit_price = calculated_unit_price.quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
         if fields.get("unit_price") is None:
-            fields["unit_price"] = calculated_unit_price
+            fields["unit_price"] = float(calculated_unit_price)
             # Calculated unit_price
     
     # If we have total_price_after_discount but no total_price, and we have discount_amount and quantity
