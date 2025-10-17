@@ -16,7 +16,6 @@ export interface Mention {
 }
 
 export const useMentions = () => {
-  const [mentions, setMentions] = useState<Mention[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionPosition, setMentionPosition] = useState<MentionPosition | null>(null);
   const [suggestionPosition, setSuggestionPosition] = useState({ top: 0, left: 0 });
@@ -145,33 +144,38 @@ export const useMentions = () => {
     }
   }, []);
 
-  // Insert mention into text (bold label only, no IDs)
+  // Insert mention into text
   const insertMention = useCallback((suggestion: MentionSuggestion, currentValue: string, cursorPosition: number) => {
-    if (!mentionPosition) return currentValue;
-
-    const beforeMention = currentValue.substring(0, mentionPosition.start);
-    const afterMention = currentValue.substring(cursorPosition);
-    const mentionText = `${suggestion.label}`;
+    console.log('🚀 INSERT MENTION CALLED');
+    console.log('🚀 Suggestion:', suggestion);
+    console.log('🚀 Current value:', currentValue);
+    console.log('🚀 Cursor position:', cursorPosition);
+    console.log('🚀 Mention position:', mentionPosition);
     
-    const newValue = beforeMention + mentionText + afterMention;
-    const newCursorPosition = beforeMention.length + mentionText.length;
+    if (!mentionPosition) {
+      console.log('🚀 NO MENTION POSITION - RETURNING CURRENT VALUE');
+      return currentValue;
+    }
+
+    // Simple approach: replace @query with the suggestion label
+    const queryText = `@${mentionPosition.query}`;
+    const newValue = currentValue.replace(queryText, suggestion.label);
+    
+    console.log('🚀 Query text to replace:', queryText);
+    console.log('🚀 New value after replace:', newValue);
     
     setShowSuggestions(false);
     setMentionPosition(null);
     
-    // Update mentions list (no special mention syntax now)
-    setMentions([]);
-    
-    // Focus textarea and set cursor position
+    // Focus textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
       }
     }, 0);
     
     return newValue;
-  }, [mentionPosition, parseMentions]);
+  }, [mentionPosition]);
 
   // Close suggestions
   const closeSuggestions = useCallback(() => {
@@ -180,7 +184,7 @@ export const useMentions = () => {
   }, []);
 
   // Handle keyboard events
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback(() => {
     if (showSuggestions) {
       // Let MentionSuggestions handle keyboard navigation
       return;
@@ -190,7 +194,6 @@ export const useMentions = () => {
   }, [showSuggestions]);
 
   return {
-    mentions,
     showSuggestions,
     mentionPosition,
     suggestionPosition,

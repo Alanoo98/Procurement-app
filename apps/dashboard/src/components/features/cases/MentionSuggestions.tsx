@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Package, Building2, MapPin, FileText, Search } from 'lucide-react';
+import { Package, Building2, MapPin, FileText, Search } from 'lucide-react';
 // Removed useOrganizationUsers import - not needed for mentions
 import { useLocations } from '@/hooks/data/useLocations';
 import { supabase } from '@/lib/supabase';
@@ -84,30 +84,34 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
 
   // Generate suggestions based on query
   useEffect(() => {
-    const newSuggestions: MentionSuggestion[] = [];
+    const suggestionMap = new Map<string, MentionSuggestion>();
 
-    // User suggestions removed - no user data available
-
-    // Product suggestions
+    // Product suggestions - use Map to avoid duplicates
     products.forEach(product => {
-      newSuggestions.push({
-        id: product.product_code,
-        type: 'product',
-        label: product.description,
-        description: `Product Code: ${product.product_code}`,
-        icon: <Package className="h-4 w-4" />
-      });
+      const key = `product-${product.product_code}`;
+      if (!suggestionMap.has(key)) {
+        suggestionMap.set(key, {
+          id: product.product_code,
+          type: 'product',
+          label: product.description,
+          description: `Product Code: ${product.product_code}`,
+          icon: <Package className="h-4 w-4" />
+        });
+      }
     });
 
     // Supplier suggestions
     suppliers.forEach(supplier => {
-      newSuggestions.push({
-        id: supplier.supplier_id,
-        type: 'supplier',
-        label: supplier.name,
-        description: 'Supplier',
-        icon: <Building2 className="h-4 w-4" />
-      });
+      const key = `supplier-${supplier.supplier_id}`;
+      if (!suggestionMap.has(key)) {
+        suggestionMap.set(key, {
+          id: supplier.supplier_id,
+          type: 'supplier',
+          label: supplier.name,
+          description: 'Supplier',
+          icon: <Building2 className="h-4 w-4" />
+        });
+      }
     });
 
     // Location suggestions
@@ -115,27 +119,34 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
       location.name.toLowerCase().includes(query.toLowerCase())
     ) || [];
     filteredLocations.forEach(location => {
-      newSuggestions.push({
-        id: location.location_id,
-        type: 'location',
-        label: location.name,
-        description: location.address,
-        icon: <MapPin className="h-4 w-4" />
-      });
+      const key = `location-${location.location_id}`;
+      if (!suggestionMap.has(key)) {
+        suggestionMap.set(key, {
+          id: location.location_id,
+          type: 'location',
+          label: location.name,
+          description: location.address,
+          icon: <MapPin className="h-4 w-4" />
+        });
+      }
     });
 
     // Invoice suggestions
     invoices.forEach(invoice => {
-      newSuggestions.push({
-        id: invoice.invoice_number,
-        type: 'invoice',
-        label: invoice.invoice_number,
-        description: 'Invoice Number',
-        icon: <FileText className="h-4 w-4" />
-      });
+      const key = `invoice-${invoice.invoice_number}`;
+      if (!suggestionMap.has(key)) {
+        suggestionMap.set(key, {
+          id: invoice.invoice_number,
+          type: 'invoice',
+          label: invoice.invoice_number,
+          description: 'Invoice Number',
+          icon: <FileText className="h-4 w-4" />
+        });
+      }
     });
 
-    setSuggestions(newSuggestions.slice(0, 8)); // Limit to 8 suggestions
+    const newSuggestions = Array.from(suggestionMap.values()).slice(0, 8);
+    setSuggestions(newSuggestions);
     setSelectedIndex(0);
   }, [products, suppliers, locations, invoices, query]);
 
@@ -168,6 +179,28 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [suggestions, selectedIndex, onSelect, onClose]);
 
+  // Auto-scroll to keep selected item visible
+  useEffect(() => {
+    if (containerRef.current && suggestions.length > 0) {
+      const container = containerRef.current;
+      const selectedElement = container.children[selectedIndex] as HTMLElement;
+      
+      if (selectedElement) {
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = selectedElement.getBoundingClientRect();
+        
+        // Check if element is above visible area
+        if (elementRect.top < containerRect.top) {
+          container.scrollTop -= (containerRect.top - elementRect.top);
+        }
+        // Check if element is below visible area
+        else if (elementRect.bottom > containerRect.bottom) {
+          container.scrollTop += (elementRect.bottom - containerRect.bottom);
+        }
+      }
+    }
+  }, [selectedIndex, suggestions.length]);
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -187,7 +220,7 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
   return (
     <div
       ref={containerRef}
-      className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto min-w-64 max-w-80"
+      className="absolute z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto min-w-64 max-w-80 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
       style={{
         top: position.top,
         left: position.left,
@@ -202,10 +235,12 @@ export const MentionSuggestions: React.FC<MentionSuggestionsProps> = ({
         <>
           {suggestions.map((suggestion, index) => (
             <button
-              key={`${suggestion.type}-${suggestion.id}`}
+              key={`${suggestion.type}-${suggestion.id}-${index}`}
               onClick={() => onSelect(suggestion)}
-              className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors ${
-                index === selectedIndex ? 'bg-blue-50' : ''
+              className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 transition-colors border-l-2 ${
+                index === selectedIndex 
+                  ? 'bg-blue-50 border-blue-500 text-blue-900' 
+                  : 'border-transparent'
               }`}
             >
               <div className={`flex-shrink-0 ${

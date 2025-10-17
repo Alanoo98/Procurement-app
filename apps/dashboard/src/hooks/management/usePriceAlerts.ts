@@ -169,25 +169,60 @@ export const usePriceAlerts = () => {
     return `price-alerts:${btoa(filterHash)}`;
   }, [currentOrganization, currentBusinessUnit, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
 
-  // Check cache first
+  // Check cache first - try intelligent caching first, then fallback to simple caching
   const getCachedData = useCallback(() => {
-    if (!cacheKey) return null;
+    if (!cacheKey || !currentOrganization) return null;
+    
+    // Try intelligent caching first for better performance
+    const filters = {
+      dateRange: dateRange || undefined,
+      restaurants,
+      suppliers,
+      categories,
+      documentType: documentType === 'all' ? undefined : documentType,
+      productSearch: productSearch as unknown as Record<string, unknown>,
+      productCodeFilter: productCodeFilter === 'all' ? undefined : productCodeFilter,
+    };
+    
+    const intelligentData = cache.getIntelligent<{
+      priceVariations: PriceVariation[];
+      agreementViolations: AgreementViolation[];
+      totalSavings: { variations: number; agreements: number; total: number };
+    }>(cacheKey, filters);
+    
+    if (intelligentData) {
+      return intelligentData;
+    }
+    
+    // Fallback to simple caching
     return cache.get<{
       priceVariations: PriceVariation[];
       agreementViolations: AgreementViolation[];
       totalSavings: { variations: number; agreements: number; total: number };
     }>(cacheKey);
-  }, [cacheKey]);
+  }, [cacheKey, currentOrganization, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
 
-  // Cache the result
+  // Cache the result with intelligent caching
   const setCachedData = useCallback((data: {
     priceVariations: PriceVariation[];
     agreementViolations: AgreementViolation[];
     totalSavings: { variations: number; agreements: number; total: number };
   }) => {
-    if (!cacheKey) return;
-    cache.set(cacheKey, data, 5 * 60 * 1000); // 5 minutes
-  }, [cacheKey]);
+    if (!cacheKey || !currentOrganization) return;
+    
+    const filters = {
+      dateRange: dateRange || undefined,
+      restaurants,
+      suppliers,
+      categories,
+      documentType: documentType === 'all' ? undefined : documentType,
+      productSearch: productSearch as unknown as Record<string, unknown>,
+      productCodeFilter: productCodeFilter === 'all' ? undefined : productCodeFilter,
+    };
+    
+    // Use intelligent caching for better performance
+    cache.setIntelligent(cacheKey, data, filters, 10 * 60 * 1000); // 10 minutes cache
+  }, [cacheKey, currentOrganization, dateRange, restaurants, suppliers, categories, documentType, productSearch, productCodeFilter]);
 
   const fetchPriceAlerts = useCallback(async () => {
     if (!currentOrganization) return;
@@ -195,6 +230,7 @@ export const usePriceAlerts = () => {
     // Check cache first - this will dramatically improve performance
     const cachedData = getCachedData();
     if (cachedData) {
+      console.log('🎯 Price Alerts: Cache hit! Serving cached data');
       setPriceVariations(cachedData.priceVariations);
       setAgreementViolations(cachedData.agreementViolations);
       setTotalSavings(cachedData.totalSavings);
@@ -202,6 +238,8 @@ export const usePriceAlerts = () => {
       setError(null);
       return;
     }
+    
+    console.log('🔄 Price Alerts: Cache miss, fetching from API');
     
     setLoading(true);
     setError(null);
@@ -943,6 +981,8 @@ export const usePriceAlerts = () => {
             total: variationSavings + agreementSavings,
           },
         });
+        
+        console.log('💾 Price Alerts: Data cached successfully');
 
       } catch (err) {
         console.error('Error fetching price alerts:', err);
@@ -969,6 +1009,14 @@ export const usePriceAlerts = () => {
 
       if (error) throw error;
       
+      // Clear cache to ensure fresh data on next load
+      if (cacheKey) {
+        cache.delete(cacheKey);
+        // Also clear related cache patterns
+        cache.clearPattern('price-alerts:');
+        console.log('🗑️ Price Alerts: Cache cleared after alert resolution');
+      }
+      
       // Update local state
       setPriceVariations(prev => 
         prev.filter(variation => variation.id !== alertId)
@@ -982,12 +1030,22 @@ export const usePriceAlerts = () => {
     }
   };
 
+  // Cache invalidation function for external use
+  const invalidateCache = useCallback(() => {
+    if (cacheKey) {
+      cache.delete(cacheKey);
+      // Also clear related cache patterns
+      cache.clearPattern('price-alerts:');
+    }
+  }, [cacheKey]);
+
   return {
     priceVariations,
     agreementViolations,
     totalSavings,
     isLoading,
     error,
-    resolveAlert
+    resolveAlert,
+    invalidateCache
   };
 };

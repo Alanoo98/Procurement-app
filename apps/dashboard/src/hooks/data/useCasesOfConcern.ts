@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cache } from '@/lib/cache';
 import {
   CaseOfConcern,
@@ -90,6 +91,7 @@ export const useCasesOfConcern = (
   } = options;
 
   const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
   const [cases, setCases] = useState<CaseOfConcernWithUsers[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,23 +220,33 @@ export const useCasesOfConcern = (
   }, [cacheKey, fetchCases]);
 
   const addComment = useCallback(async (input: CreateCaseCommentInput): Promise<CaseComment> => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
+    
     const { data, error } = await supabase
       .from('case_comments')
-      .insert(input)
+      .insert({
+        ...input,
+        user_id: user.id
+      })
       .select(`
         *,
         users!case_comments_user_id_fkey(full_name)
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error in addComment:', error);
+      throw error;
+    }
 
     // Clear cache and refetch
     cache.delete(cacheKey);
     await fetchCases();
 
     return data;
-  }, [cacheKey, fetchCases]);
+  }, [cacheKey, fetchCases, user?.id]);
 
   const deleteComment = useCallback(async (commentId: string): Promise<void> => {
     const { error } = await supabase

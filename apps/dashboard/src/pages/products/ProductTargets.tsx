@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { useProductsLookup } from '@/hooks/data/useProductsLookup';
 import { ExternalLink } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useProductMetrics } from '@/hooks/metrics';
-import { useSuppliers } from '@/hooks/metrics';
+// import { useProductMetrics } from '@/hooks/metrics';
+// import { useSuppliers } from '@/hooks/metrics';
 import { formatCurrency } from '@/utils/format';
 
 // Utility functions for number formatting
@@ -53,8 +53,8 @@ export const ProductTargets: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading, error } = useProductTargets();
   const [showModal, setShowModal] = useState(false);
-  const [products, setProducts] = useState<Array<{ product_code: string; description: string; supplier_id: string }>>([]);
-  const [suppliers, setSuppliers] = useState<Array<{ supplier_id: string; name: string }>>([]);
+  const [products, setProducts] = useState<Array<{ product_code: string | null; description: string | null; supplier_id: string | null }>>([]);
+  const [suppliers] = useState<Array<{ supplier_id: string; name: string }>>([]);
   const [form, setForm] = useState({
     product_code: '',
     supplier_id: '',
@@ -76,12 +76,33 @@ export const ProductTargets: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { data: productMetrics } = useProductMetrics();
-  const { data: supplierMetrics } = useSuppliers();
-  const [editTarget, setEditTarget] = useState<any>(null);
-  const [deleteTarget, setDeleteTarget] = useState<any>(null);
-  const [productNames, setProductNames] = useState<Record<string, string>>({});
-  const [supplierNames, setSupplierNames] = useState<Record<string, string>>({});
+  // const { data: productMetrics } = useProductMetrics();
+  // const { data: supplierMetrics } = useSuppliers();
+  const [editTarget, setEditTarget] = useState<{
+    id: string;
+    product_code: string;
+    supplier_id?: string;
+    target_quantity?: number;
+    target_spend?: number;
+    start_date: string;
+    end_date: string;
+    notes?: string;
+    location_id?: string;
+    productSearch?: string;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    product_code: string;
+    supplier_id?: string;
+    target_quantity?: number;
+    target_spend?: number;
+    start_date: string;
+    end_date: string;
+    notes?: string;
+    location_id?: string;
+  } | null>(null);
+  const [, setProductNames] = useState<Record<string, string>>({});
+  const [, setSupplierNames] = useState<Record<string, string>>({});
   const [locations, setLocations] = useState<Array<{ location_id: string; name: string }>>([]);
   const [locationNames, setLocationNames] = useState<Record<string, string>>({});
   const { data: targets, isLoading: loadingTargets, error: errorTargets, fetchTargets } = useProductTargets();
@@ -112,16 +133,16 @@ export const ProductTargets: React.FC = () => {
     if ((showModal || !!editTarget) && productsLookup.items.length === 0 && !productsLookup.loading) {
       productsLookup.loadMore();
     }
-  }, [showModal, editTarget, productsLookup.items.length, productsLookup.loading]);
+  }, [showModal, editTarget, productsLookup.items.length, productsLookup.loading, productsLookup]);
 
   useEffect(() => {
-    setProducts(productsLookup.items as any);
-    setFilteredProducts(productsLookup.items as any);
+    setProducts(productsLookup.items);
+    setFilteredProducts(productsLookup.items);
   }, [productsLookup.items]);
 
   // Filter products by supplier and search
   useEffect(() => {
-    let filtered = products;
+    const filtered = products;
     if (productSearch.trim() && !productsLookup.loading) {
       // Reset and fetch from start when search changes
       productsLookup.reset();
@@ -130,7 +151,7 @@ export const ProductTargets: React.FC = () => {
     // When supplier filter changes, reset lookup as well
     // Note: handled through dependency of supplierId in hook params
     setFilteredProducts(filtered);
-  }, [productSearch, products, productsLookup.loading]);
+  }, [productSearch, products, productsLookup.loading, productsLookup]);
 
   // Refresh product targets after adding
   // const { data: targets, isLoading: loadingTargets, error: errorTargets } = useProductTargets(); // This line is now redundant
@@ -146,7 +167,7 @@ export const ProductTargets: React.FC = () => {
       filtered = targets.filter(target => 
         (target.product_name || target.product_code || '').toLowerCase().includes(search) ||
         (target.supplier_name || '').toLowerCase().includes(search) ||
-        (locationNames[target.location_id] || '').toLowerCase().includes(search)
+        (locationNames[target.location_id || ''] || '').toLowerCase().includes(search)
       );
     }
     
@@ -291,7 +312,7 @@ export const ProductTargets: React.FC = () => {
   useEffect(() => {
     if (editTarget) {
       // Set productSearch to show the current product description
-      const currentProduct = productsData.find(p => p.product_code === editTarget.product_code);
+      const currentProduct = products.find(p => p.product_code === editTarget.product_code);
       const productDescription = currentProduct?.description || editTarget.product_code || '';
       if (editTarget.productSearch !== productDescription) {
         setEditTarget({
@@ -300,13 +321,13 @@ export const ProductTargets: React.FC = () => {
         });
       }
     }
-  }, [editTarget, productsData]);
+  }, [editTarget, products]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name === 'product_code') {
       // When product is selected, set supplier_id automatically
-      const selectedProduct = productsData.find(p => p.product_code === value);
+      const selectedProduct = products.find(p => p.product_code === value);
       setForm({
         ...form,
         product_code: value,
@@ -351,27 +372,27 @@ export const ProductTargets: React.FC = () => {
   };
 
   // Find selected product details
-  const selectedProduct = form.product_code ? productsData.find(p => p.product_code === form.product_code) : null;
+  const selectedProduct = form.product_code ? products.find(p => p.product_code === form.product_code) : null;
 
   // Fetch business units for dropdown
-  const { businessUnits } = useOrganization();
+  // const { businessUnits } = useOrganization();
 
-  // Helper maps
-  const productMap = useMemo(() => {
-    const map = new Map<string, string>();
-    (productMetrics || []).forEach(p => map.set(p.productCode, p.description));
-    return map;
-  }, [productMetrics]);
-  const supplierMap = useMemo(() => {
-    const map = new Map<string, string>();
-    (supplierMetrics || []).forEach(s => map.set(s.supplier_id, s.name));
-    return map;
-  }, [supplierMetrics]);
-  const businessUnitMap = useMemo(() => {
-    const map = new Map<string, string>();
-    businessUnits.forEach(bu => map.set(bu.id, bu.name));
-    return map;
-  }, [businessUnits]);
+  // Helper maps (commented out as they're not currently used)
+  // const productMap = useMemo(() => {
+  //   const map = new Map<string, string>();
+  //   (productMetrics || []).forEach(p => map.set(p.productCode, p.description));
+  //   return map;
+  // }, [productMetrics]);
+  // const supplierMap = useMemo(() => {
+  //   const map = new Map<string, string>();
+  //   (supplierMetrics || []).forEach(s => map.set(s.supplier_id, s.name));
+  //   return map;
+  // }, [supplierMetrics]);
+  // const businessUnitMap = useMemo(() => {
+  //   const map = new Map<string, string>();
+  //   businessUnits.forEach(bu => map.set(bu.id, bu.name));
+  //   return map;
+  // }, [businessUnits]);
 
   return (
     <div className="p-8">
@@ -636,7 +657,7 @@ export const ProductTargets: React.FC = () => {
                       <div className="text-xs text-gray-500">{row.product_code}</div>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap">{row.supplier_name || '-'}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{locationNames[row.location_id] || ''}</td>
+                    <td className="px-4 py-2 whitespace-nowrap">{locationNames[row.location_id || ''] || ''}</td>
                     <td className="px-4 py-2 text-right">{row.target_quantity ? formatQuantity(row.target_quantity) : '-'}</td>
                     <td className="px-4 py-2 text-right">{formatQuantity(row.quantity_sold)}</td>
                     <td className="px-4 py-2 text-right">
@@ -768,7 +789,7 @@ export const ProductTargets: React.FC = () => {
                   <option value="">Select a supplier{form.product_code ? ' (auto-selected)' : ' (optional)'}</option>
                   {form.product_code
                     ? (() => {
-                        const selectedProduct = productsData.find(p => p.product_code === form.product_code);
+                        const selectedProduct = products.find(p => p.product_code === form.product_code);
                         const supplier = suppliers.find(s => s.supplier_id === selectedProduct?.supplier_id);
                         return supplier ? (
                           <option key={supplier.supplier_id} value={supplier.supplier_id}>
@@ -949,7 +970,7 @@ export const ProductTargets: React.FC = () => {
                   value={editTarget.product_code}
                   onChange={e => {
                     const value = e.target.value;
-                    const selectedProduct = productsData.find(p => p.product_code === value);
+                    const selectedProduct = products.find(p => p.product_code === value);
                     setEditTarget({
                       ...editTarget,
                       product_code: value,
@@ -964,7 +985,7 @@ export const ProductTargets: React.FC = () => {
                     // Filter products by search and supplier (if set)
                     let filtered = products;
                     if (editTarget.supplier_id) {
-                      const supplierProductCodes = productsData
+                      const supplierProductCodes = products
                         .filter(item => item.supplier_id === editTarget.supplier_id)
                         .map(item => item.product_code);
                       filtered = products.filter(product => supplierProductCodes.includes(product.product_code));
@@ -977,7 +998,7 @@ export const ProductTargets: React.FC = () => {
                       );
                     }
                     // Always include the current product as an option
-                    const current = productsData.find(p => p.product_code === editTarget.product_code);
+                    const current = products.find(p => p.product_code === editTarget.product_code);
                     const alreadyIncluded = filtered.some(p => p.product_code === editTarget.product_code);
                     const options = [...filtered];
                     if (current && !alreadyIncluded) options.unshift(current);
@@ -1001,7 +1022,7 @@ export const ProductTargets: React.FC = () => {
                   <option value="">Select a supplier{editTarget.product_code ? ' (auto-selected)' : ' (optional)'}</option>
                   {(() => {
                     if (editTarget.product_code) {
-                      const selectedProduct = productsData.find(p => p.product_code === editTarget.product_code);
+                      const selectedProduct = products.find(p => p.product_code === editTarget.product_code);
                       const supplier = suppliers.find(s => s.supplier_id === selectedProduct?.supplier_id);
                       // Always include the current supplier as an option
                       const current = suppliers.find(s => s.supplier_id === editTarget.supplier_id);
@@ -1035,7 +1056,7 @@ export const ProductTargets: React.FC = () => {
                     type="number"
                     name="target_quantity"
                     value={editTarget.target_quantity ?? ''}
-                    onChange={e => setEditTarget({ ...editTarget, target_quantity: e.target.value })}
+                    onChange={e => setEditTarget({ ...editTarget, target_quantity: e.target.value ? Number(e.target.value) : undefined })}
                     className="w-full border rounded px-3 py-2"
                     min="0"
                   />
@@ -1046,7 +1067,7 @@ export const ProductTargets: React.FC = () => {
                     type="number"
                     name="target_spend"
                     value={editTarget.target_spend ?? ''}
-                    onChange={e => setEditTarget({ ...editTarget, target_spend: e.target.value })}
+                    onChange={e => setEditTarget({ ...editTarget, target_spend: e.target.value ? Number(e.target.value) : undefined })}
                     className="w-full border rounded px-3 py-2"
                     min="0"
                   />

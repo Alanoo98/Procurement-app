@@ -194,7 +194,12 @@ class UnifiedCache {
   /**
    * Filter data based on requested filters
    */
-  private filterData<T>(data: T[], requested: FilterSet, cached: FilterSet): T[] {
+  private filterData<T>(data: T[] | T, requested: FilterSet, cached: FilterSet): T {
+    // If data is not an array, return it as-is (for objects like price alerts data)
+    if (!Array.isArray(data)) {
+      return data;
+    }
+    
     let filtered = [...data];
 
     // Apply date range filtering
@@ -234,7 +239,7 @@ class UnifiedCache {
       });
     }
 
-    return filtered;
+    return filtered as T;
   }
 
   // Basic cache operations

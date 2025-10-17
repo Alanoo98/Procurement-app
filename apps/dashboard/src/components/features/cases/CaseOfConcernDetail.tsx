@@ -3,6 +3,7 @@ import { ArrowLeft, Edit, MessageSquare, Clock, User, Tag, AlertTriangle, CheckC
 import { useCaseOfConcern } from '@/hooks/data/useCasesOfConcern';
 import { formatDate } from '@/utils/format';
 import { LoadingState, ErrorState } from '@/components/shared/ui/EmptyStates';
+import { ProductLink } from './ProductLink';
 
 interface CaseOfConcernDetailProps {
   caseId: string;
@@ -157,8 +158,12 @@ export const CaseOfConcernDetail: React.FC<CaseOfConcernDetailProps> = ({
                   )}
                   {caseData.related_product_code && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-500">Related Product Code</label>
-                      <p className="text-sm text-gray-900">{caseData.related_product_code}</p>
+                      <label className="block text-sm font-medium text-gray-500 mb-2">Related Product</label>
+                      <ProductLink 
+                        productCode={caseData.related_product_code}
+                        supplierId={caseData.related_supplier_id}
+                        supplierName={caseData.related_supplier_name}
+                      />
                     </div>
                   )}
                   {caseData.related_invoice_number && (

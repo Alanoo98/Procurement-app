@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useCasesOfConcern } from '@/hooks/data/useCasesOfConcern';
 import { formatDate } from '@/utils/format';
+import { ProductLink } from '@/components/features/cases/ProductLink';
 import { ConcernType, CreateCaseOfConcernInput, UpdateCaseOfConcernInput } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { MentionSuggestions } from '@/components/features/cases/MentionSuggestions';
@@ -184,11 +185,14 @@ export const CasesOfConcern: React.FC = () => {
     if (!newComment.trim()) return;
 
     setIsSubmittingComment(true);
+    
     try {
       await addComment({ case_id: caseId, comment: newComment.trim() });
       setNewComment('');
     } catch (err) {
       console.error('Error adding comment:', err);
+      // Show user-friendly error message
+      alert('Failed to add comment. Please try again.');
     } finally {
       setIsSubmittingComment(false);
     }
@@ -560,14 +564,28 @@ export const CasesOfConcern: React.FC = () => {
                               </div>
                             </div>
                           ) : (
-                            caseItem.description && (
-                              <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                                <MentionRenderer 
-                                  text={caseItem.description} 
-                                  mentions={parseMentions(caseItem.description)} 
-                                />
-                              </div>
-                            )
+                            <div className="space-y-3">
+                              {caseItem.description && (
+                                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                  <MentionRenderer 
+                                    text={caseItem.description} 
+                                    mentions={parseMentions(caseItem.description)} 
+                                  />
+                                </div>
+                              )}
+                              
+                              {/* Related Product Link */}
+                              {(caseItem as unknown as { related_product_code?: string }).related_product_code && (
+                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                  <span className="text-sm font-medium text-gray-500">Related Product:</span>
+                                  <ProductLink 
+                                    productCode={(caseItem as unknown as { related_product_code: string }).related_product_code}
+                                    supplierId={(caseItem as unknown as { related_supplier_id?: string }).related_supplier_id}
+                                    supplierName={(caseItem as unknown as { related_supplier_name?: string }).related_supplier_name}
+                                  />
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
 
@@ -636,7 +654,13 @@ export const CasesOfConcern: React.FC = () => {
                               )}
 
                               {/* Add Comment Form */}
-                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                              <form 
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  handleAddComment(caseItem.id);
+                                }}
+                                className="bg-white rounded-lg p-3 border border-gray-200"
+                              >
                                 <div className="flex gap-3">
                                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-medium text-gray-600 flex-shrink-0">
                                     {user?.email?.charAt(0)?.toUpperCase() || 'U'}
@@ -655,7 +679,14 @@ export const CasesOfConcern: React.FC = () => {
                                           const target = e.target as HTMLTextAreaElement;
                                           handleTextChange(target.value, target.selectionStart || 0);
                                         }}
-                                        onKeyDown={handleKeyDown}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleAddComment(caseItem.id);
+                                          } else {
+                                            handleKeyDown();
+                                          }
+                                        }}
                                         placeholder="Write a comment..."
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
                                         rows={2}
@@ -666,8 +697,23 @@ export const CasesOfConcern: React.FC = () => {
                                         <MentionSuggestions
                                           query={mentionPosition.query}
                                           onSelect={(suggestion) => {
-                                            const newText = insertMention(suggestion, newComment, 0);
+                                            console.log('🔥 SELECTION CLICKED:', suggestion);
+                                            console.log('🔥 Current text:', newComment);
+                                            console.log('🔥 Mention position:', mentionPosition);
+                                            
+                                            const cursorPosition = textareaRef.current?.selectionStart || 0;
+                                            console.log('🔥 Cursor position:', cursorPosition);
+                                            
+                                            const newText = insertMention(suggestion, newComment, cursorPosition);
+                                            console.log('🔥 New text after insertMention:', newText);
+                                            
+                                            // Force update the textarea directly
+                                            if (textareaRef.current) {
+                                              textareaRef.current.value = newText;
+                                            }
+                                            
                                             setNewComment(newText);
+                                            console.log('🔥 State updated with:', newText);
                                           }}
                                           onClose={closeSuggestions}
                                           position={suggestionPosition}
@@ -682,6 +728,7 @@ export const CasesOfConcern: React.FC = () => {
                                       
                                       <div className="flex gap-2">
                                         <button
+                                          type="button"
                                           onClick={() => setNewComment('')}
                                           disabled={!newComment.trim()}
                                           className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -690,7 +737,7 @@ export const CasesOfConcern: React.FC = () => {
                                         </button>
                                         
                                         <button
-                                          onClick={() => handleAddComment(caseItem.id)}
+                                          type="submit"
                                           disabled={!newComment.trim() || isSubmittingComment}
                                           className="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                                         >
@@ -700,7 +747,7 @@ export const CasesOfConcern: React.FC = () => {
                                     </div>
                                   </div>
                                 </div>
-                              </div>
+                              </form>
                             </div>
                           </div>
                         )}
